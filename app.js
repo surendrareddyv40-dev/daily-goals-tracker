@@ -5,117 +5,148 @@
 
 
 /* =========================================================
-   1. SUPABASE CONNECTION
+   SUPABASE CONNECTION
 ========================================================= */
 
-// We will replace these two values later.
-
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_URL =
+  "https://bvzvrxftmeldsxzpvibq.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-  "YOUR_SUPABASE_PUBLISHABLE_KEY";
+  "sb_publishable_URrHQtxJb_kGfyInNLyvbQ_EImnzyBE";
 
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
 
 
 /* =========================================================
-   2. APP VARIABLES
+   APP VARIABLES
 ========================================================= */
 
 let currentUser = null;
-
 let currentDate = new Date();
-
 let currentPeriod = "daily";
-
 let currentYear = new Date().getFullYear();
-
 let goals = [];
-
 let isRegisterMode = false;
 
 
 /* =========================================================
-   3. GET HTML ELEMENTS
+   HTML ELEMENTS
 ========================================================= */
 
-const authScreen = document.getElementById("authScreen");
+const authScreen =
+  document.getElementById("authScreen");
 
-const appScreen = document.getElementById("appScreen");
+const appScreen =
+  document.getElementById("appScreen");
 
-const loadingScreen = document.getElementById("loadingScreen");
+const loadingScreen =
+  document.getElementById("loadingScreen");
 
-const loginTab = document.getElementById("loginTab");
+const loginTab =
+  document.getElementById("loginTab");
 
-const registerTab = document.getElementById("registerTab");
+const registerTab =
+  document.getElementById("registerTab");
 
-const authButton = document.getElementById("authButton");
+const authButton =
+  document.getElementById("authButton");
 
-const emailInput = document.getElementById("email");
+const emailInput =
+  document.getElementById("email");
 
-const passwordInput = document.getElementById("password");
+const passwordInput =
+  document.getElementById("password");
 
-const authMessage = document.getElementById("authMessage");
+const authMessage =
+  document.getElementById("authMessage");
 
-const userEmail = document.getElementById("userEmail");
+const userEmail =
+  document.getElementById("userEmail");
 
-const logoutButton = document.getElementById("logoutButton");
+const logoutButton =
+  document.getElementById("logoutButton");
 
-const goalInput = document.getElementById("goalInput");
+const goalInput =
+  document.getElementById("goalInput");
 
-const addGoalButton = document.getElementById("addGoalButton");
+const addGoalButton =
+  document.getElementById("addGoalButton");
 
-const goalsList = document.getElementById("goalsList");
+const goalsList =
+  document.getElementById("goalsList");
 
-const emptyState = document.getElementById("emptyState");
+const emptyState =
+  document.getElementById("emptyState");
 
-const goalCount = document.getElementById("goalCount");
+const goalCount =
+  document.getElementById("goalCount");
 
-const completedCount = document.getElementById("completedCount");
+const completedCount =
+  document.getElementById("completedCount");
 
-const totalCountText = document.getElementById("totalCountText");
+const totalCountText =
+  document.getElementById("totalCountText");
 
-const progressPercent = document.getElementById("progressPercent");
+const progressPercent =
+  document.getElementById("progressPercent");
 
-const progressText = document.getElementById("progressText");
+const progressText =
+  document.getElementById("progressText");
 
-const progressBar = document.getElementById("progressBar");
+const progressBar =
+  document.getElementById("progressBar");
 
-const streakCount = document.getElementById("streakCount");
+const streakCount =
+  document.getElementById("streakCount");
 
-const currentDateText = document.getElementById("currentDateText");
+const currentDateText =
+  document.getElementById("currentDateText");
 
-const currentDateSubtext = document.getElementById("currentDateSubtext");
+const currentDateSubtext =
+  document.getElementById("currentDateSubtext");
 
-const previousDate = document.getElementById("previousDate");
+const previousDate =
+  document.getElementById("previousDate");
 
-const nextDate = document.getElementById("nextDate");
+const nextDate =
+  document.getElementById("nextDate");
 
-const greeting = document.getElementById("greeting");
+const greeting =
+  document.getElementById("greeting");
 
-const weeklySection = document.getElementById("weeklySection");
+const weeklySection =
+  document.getElementById("weeklySection");
 
-const monthlySection = document.getElementById("monthlySection");
+const monthlySection =
+  document.getElementById("monthlySection");
 
-const yearlySection = document.getElementById("yearlySection");
+const yearlySection =
+  document.getElementById("yearlySection");
 
-const weeklyStats = document.getElementById("weeklyStats");
+const weeklyStats =
+  document.getElementById("weeklyStats");
 
-const monthlyStats = document.getElementById("monthlyStats");
+const monthlyStats =
+  document.getElementById("monthlyStats");
 
-const yearCalendar = document.getElementById("yearCalendar");
+const yearCalendar =
+  document.getElementById("yearCalendar");
 
-const yearText = document.getElementById("yearText");
+const yearText =
+  document.getElementById("yearText");
 
-const previousYear = document.getElementById("previousYear");
+const previousYear =
+  document.getElementById("previousYear");
 
-const nextYear = document.getElementById("nextYear");
+const nextYear =
+  document.getElementById("nextYear");
 
-const yearTotalGoals = document.getElementById("yearTotalGoals");
+const yearTotalGoals =
+  document.getElementById("yearTotalGoals");
 
 const yearCompletedGoals =
   document.getElementById("yearCompletedGoals");
@@ -125,54 +156,64 @@ const yearSuccessRate =
 
 
 /* =========================================================
-   4. INITIAL STARTUP
+   START APP
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
 
-  setGreeting();
+    setGreeting();
+    updateDateDisplay();
+    setupEventListeners();
 
-  updateDateDisplay();
+    showLoading(true);
 
-  setupEventListeners();
+    const {
+      data: {
+        session
+      }
+    } =
+      await supabaseClient.auth.getSession();
 
-  showLoading(true);
+    if (
+      session &&
+      session.user
+    ) {
 
-  const {
-    data: {
-      session
+      currentUser =
+        session.user;
+
+      showApp();
+
+      await loadGoals();
+
+    } else {
+
+      showAuth();
+
     }
-  } = await supabaseClient.auth.getSession();
 
-  if (session && session.user) {
-
-    currentUser = session.user;
-
-    showApp();
-
-    await loadGoals();
-
-  } else {
-
-    showAuth();
+    showLoading(false);
 
   }
-
-  showLoading(false);
-
-});
+);
 
 
 /* =========================================================
-   5. AUTH STATE
+   AUTH STATE
 ========================================================= */
 
 supabaseClient.auth.onAuthStateChange(
   async (event, session) => {
 
-    if (session && session.user) {
+    if (
+      session &&
+      session.user
+    ) {
 
-      currentUser = session.user;
+      currentUser =
+        session.user;
 
       showApp();
 
@@ -181,6 +222,7 @@ supabaseClient.auth.onAuthStateChange(
     } else {
 
       currentUser = null;
+      goals = [];
 
       showAuth();
 
@@ -191,148 +233,271 @@ supabaseClient.auth.onAuthStateChange(
 
 
 /* =========================================================
-   6. EVENT LISTENERS
+   EVENT LISTENERS
 ========================================================= */
 
 function setupEventListeners() {
 
-  loginTab.addEventListener("click", () => {
+  if (loginTab) {
 
-    isRegisterMode = false;
+    loginTab.addEventListener(
+      "click",
+      () => {
 
-    loginTab.classList.add("active");
+        isRegisterMode = false;
 
-    registerTab.classList.remove("active");
+        loginTab.classList.add(
+          "active"
+        );
 
-    authButton.textContent = "Login";
+        registerTab.classList.remove(
+          "active"
+        );
 
-    authMessage.textContent = "";
+        authButton.textContent =
+          "Login";
 
-  });
+        authMessage.textContent =
+          "";
 
+      }
+    );
 
-  registerTab.addEventListener("click", () => {
-
-    isRegisterMode = true;
-
-    registerTab.classList.add("active");
-
-    loginTab.classList.remove("active");
-
-    authButton.textContent = "Create Account";
-
-    authMessage.textContent = "";
-
-  });
+  }
 
 
-  authButton.addEventListener("click", handleAuthentication);
+  if (registerTab) {
+
+    registerTab.addEventListener(
+      "click",
+      () => {
+
+        isRegisterMode = true;
+
+        registerTab.classList.add(
+          "active"
+        );
+
+        loginTab.classList.remove(
+          "active"
+        );
+
+        authButton.textContent =
+          "Create Account";
+
+        authMessage.textContent =
+          "";
+
+      }
+    );
+
+  }
 
 
-  passwordInput.addEventListener("keydown", event => {
+  if (authButton) {
 
-    if (event.key === "Enter") {
+    authButton.addEventListener(
+      "click",
+      handleAuthentication
+    );
 
-      handleAuthentication();
-
-    }
-
-  });
-
-
-  emailInput.addEventListener("keydown", event => {
-
-    if (event.key === "Enter") {
-
-      handleAuthentication();
-
-    }
-
-  });
+  }
 
 
-  logoutButton.addEventListener("click", logout);
+  if (passwordInput) {
+
+    passwordInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          handleAuthentication();
+
+        }
+
+      }
+    );
+
+  }
 
 
-  addGoalButton.addEventListener("click", addGoal);
+  if (emailInput) {
+
+    emailInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          handleAuthentication();
+
+        }
+
+      }
+    );
+
+  }
 
 
-  goalInput.addEventListener("keydown", event => {
+  if (logoutButton) {
 
-    if (event.key === "Enter") {
+    logoutButton.addEventListener(
+      "click",
+      logout
+    );
 
-      addGoal();
-
-    }
-
-  });
-
-
-  previousDate.addEventListener("click", () => {
-
-    changeDate(-1);
-
-  });
+  }
 
 
-  nextDate.addEventListener("click", () => {
+  if (addGoalButton) {
 
-    changeDate(1);
+    addGoalButton.addEventListener(
+      "click",
+      addGoal
+    );
 
-  });
-
-
-  previousYear.addEventListener("click", () => {
-
-    currentYear--;
-
-    renderYearlyCalendar();
-
-  });
+  }
 
 
-  nextYear.addEventListener("click", () => {
+  if (goalInput) {
 
-    currentYear++;
+    goalInput.addEventListener(
+      "keydown",
+      event => {
 
-    renderYearlyCalendar();
+        if (
+          event.key === "Enter"
+        ) {
 
-  });
+          addGoal();
+
+        }
+
+      }
+    );
+
+  }
 
 
-  document.querySelectorAll(".period-tab").forEach(button => {
+  if (previousDate) {
 
-    button.addEventListener("click", () => {
+    previousDate.addEventListener(
+      "click",
+      () => {
 
-      document
-        .querySelectorAll(".period-tab")
-        .forEach(tab => tab.classList.remove("active"));
+        changeDate(-1);
 
-      button.classList.add("active");
+      }
+    );
 
-      currentPeriod = button.dataset.period;
+  }
 
-      updatePeriodView();
+
+  if (nextDate) {
+
+    nextDate.addEventListener(
+      "click",
+      () => {
+
+        changeDate(1);
+
+      }
+    );
+
+  }
+
+
+  if (previousYear) {
+
+    previousYear.addEventListener(
+      "click",
+      () => {
+
+        currentYear--;
+
+        renderYearlyCalendar();
+
+      }
+    );
+
+  }
+
+
+  if (nextYear) {
+
+    nextYear.addEventListener(
+      "click",
+      () => {
+
+        currentYear++;
+
+        renderYearlyCalendar();
+
+      }
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(".period-tab")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll(
+              ".period-tab"
+            )
+            .forEach(tab => {
+
+              tab.classList.remove(
+                "active"
+              );
+
+            });
+
+          button.classList.add(
+            "active"
+          );
+
+          currentPeriod =
+            button.dataset.period;
+
+          updatePeriodView();
+
+        }
+      );
 
     });
-
-  });
 
 }
 
 
 /* =========================================================
-   7. LOGIN / REGISTER
+   LOGIN / REGISTER
 ========================================================= */
 
 async function handleAuthentication() {
 
-  const email = emailInput.value.trim();
+  const email =
+    emailInput.value.trim();
 
-  const password = passwordInput.value;
+  const password =
+    passwordInput.value;
 
 
-  if (!email || !password) {
+  if (
+    !email ||
+    !password
+  ) {
 
     showAuthMessage(
       "Please enter your email and password."
@@ -343,7 +508,9 @@ async function handleAuthentication() {
   }
 
 
-  if (password.length < 6) {
+  if (
+    password.length < 6
+  ) {
 
     showAuthMessage(
       "Password must contain at least 6 characters."
@@ -356,7 +523,9 @@ async function handleAuthentication() {
 
   showLoading(true);
 
-  showAuthMessage("Please wait...");
+  showAuthMessage(
+    "Please wait..."
+  );
 
 
   try {
@@ -366,20 +535,21 @@ async function handleAuthentication() {
       const {
         data,
         error
-      } = await supabaseClient.auth.signUp({
+      } =
+        await supabaseClient.auth.signUp({
 
-        email: email,
+          email: email,
 
-        password: password,
+          password: password,
 
-        options: {
+          options: {
 
-          emailRedirectTo:
-            window.location.origin
+            emailRedirectTo:
+              window.location.origin
 
-        }
+          }
 
-      });
+        });
 
 
       if (error) {
@@ -408,13 +578,15 @@ async function handleAuthentication() {
       const {
         data,
         error
-      } = await supabaseClient.auth.signInWithPassword({
+      } =
+        await supabaseClient.auth
+          .signInWithPassword({
 
-        email: email,
+            email: email,
 
-        password: password
+            password: password
 
-      });
+          });
 
 
       if (error) {
@@ -424,7 +596,8 @@ async function handleAuthentication() {
       }
 
 
-      currentUser = data.user;
+      currentUser =
+        data.user;
 
       showApp();
 
@@ -437,7 +610,8 @@ async function handleAuthentication() {
     console.error(error);
 
     showAuthMessage(
-      error.message || "Something went wrong."
+      error.message ||
+      "Something went wrong."
     );
 
   }
@@ -449,7 +623,7 @@ async function handleAuthentication() {
 
 
 /* =========================================================
-   8. LOGOUT
+   LOGOUT
 ========================================================= */
 
 async function logout() {
@@ -458,7 +632,9 @@ async function logout() {
 
   const {
     error
-  } = await supabaseClient.auth.signOut();
+  } =
+    await supabaseClient.auth.signOut();
+
 
   if (error) {
 
@@ -466,8 +642,8 @@ async function logout() {
 
   }
 
-  currentUser = null;
 
+  currentUser = null;
   goals = [];
 
   showAuth();
@@ -478,30 +654,49 @@ async function logout() {
 
 
 /* =========================================================
-   9. SHOW AUTH SCREEN
+   AUTH SCREEN
 ========================================================= */
 
 function showAuth() {
 
-  authScreen.classList.remove("hidden");
+  if (!authScreen || !appScreen) {
+    return;
+  }
 
-  appScreen.classList.add("hidden");
+  authScreen.classList.remove(
+    "hidden"
+  );
+
+  appScreen.classList.add(
+    "hidden"
+  );
 
 }
 
 
 /* =========================================================
-   10. SHOW APP
+   APP SCREEN
 ========================================================= */
 
 function showApp() {
 
-  authScreen.classList.add("hidden");
+  if (!authScreen || !appScreen) {
+    return;
+  }
 
-  appScreen.classList.remove("hidden");
+  authScreen.classList.add(
+    "hidden"
+  );
+
+  appScreen.classList.remove(
+    "hidden"
+  );
 
 
-  if (currentUser) {
+  if (
+    currentUser &&
+    userEmail
+  ) {
 
     userEmail.textContent =
       currentUser.email || "";
@@ -512,7 +707,7 @@ function showApp() {
 
 
 /* =========================================================
-   11. LOAD GOALS
+   LOAD GOALS
 ========================================================= */
 
 async function loadGoals() {
@@ -527,21 +722,26 @@ async function loadGoals() {
   const {
     data,
     error
-  } = await supabaseClient
-
-    .from("goals")
-
-    .select("*")
-
-    .eq("user_id", currentUser.id)
-
-    .order("goal_date", {
-      ascending: true
-    })
-
-    .order("created_at", {
-      ascending: true
-    });
+  } =
+    await supabaseClient
+      .from("goals")
+      .select("*")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "goal_date",
+        {
+          ascending: true
+        }
+      )
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      );
 
 
   if (error) {
@@ -557,8 +757,8 @@ async function loadGoals() {
   }
 
 
-  goals = data || [];
-
+  goals =
+    data || [];
 
   updatePeriodView();
 
@@ -566,17 +766,20 @@ async function loadGoals() {
 
 
 /* =========================================================
-   12. ADD GOAL
+   ADD GOAL
 ========================================================= */
 
 async function addGoal() {
 
-  const title = goalInput.value.trim();
+  const title =
+    goalInput.value.trim();
 
 
   if (!title) {
 
-    alert("Please enter a goal.");
+    alert(
+      "Please enter a goal."
+    );
 
     return;
 
@@ -585,40 +788,47 @@ async function addGoal() {
 
   if (!currentUser) {
 
-    alert("Please login first.");
+    alert(
+      "Please login first."
+    );
 
     return;
 
   }
 
 
-  addGoalButton.disabled = true;
+  addGoalButton.disabled =
+    true;
 
-  addGoalButton.textContent = "Adding...";
+  addGoalButton.textContent =
+    "Adding...";
 
 
   const {
     data,
     error
-  } = await supabaseClient
+  } =
+    await supabaseClient
+      .from("goals")
+      .insert({
 
-    .from("goals")
+        user_id:
+          currentUser.id,
 
-    .insert({
+        title:
+          title,
 
-      user_id: currentUser.id,
+        goal_date:
+          formatDateForDatabase(
+            currentDate
+          ),
 
-      title: title,
+        completed:
+          false
 
-      goal_date: formatDateForDatabase(currentDate),
-
-      completed: false
-
-    })
-
-    .select()
-
-    .single();
+      })
+      .select()
+      .single();
 
 
   if (error) {
@@ -640,37 +850,44 @@ async function addGoal() {
   }
 
 
-  addGoalButton.disabled = false;
+  addGoalButton.disabled =
+    false;
 
-  addGoalButton.textContent = "+ Add Goal";
+  addGoalButton.textContent =
+    "+ Add Goal";
 
 }
 
 
 /* =========================================================
-   13. TOGGLE GOAL
+   TOGGLE GOAL
 ========================================================= */
 
 async function toggleGoal(goal) {
 
-  const newStatus = !goal.completed;
+  const newStatus =
+    !goal.completed;
 
 
   const {
     error
-  } = await supabaseClient
+  } =
+    await supabaseClient
+      .from("goals")
+      .update({
 
-    .from("goals")
+        completed:
+          newStatus
 
-    .update({
-
-      completed: newStatus
-
-    })
-
-    .eq("id", goal.id)
-
-    .eq("user_id", currentUser.id);
+      })
+      .eq(
+        "id",
+        goal.id
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      );
 
 
   if (error) {
@@ -686,8 +903,8 @@ async function toggleGoal(goal) {
   }
 
 
-  goal.completed = newStatus;
-
+  goal.completed =
+    newStatus;
 
   updatePeriodView();
 
@@ -695,7 +912,7 @@ async function toggleGoal(goal) {
 
 
 /* =========================================================
-   14. DELETE GOAL
+   DELETE GOAL
 ========================================================= */
 
 async function deleteGoal(goal) {
@@ -715,15 +932,18 @@ async function deleteGoal(goal) {
 
   const {
     error
-  } = await supabaseClient
-
-    .from("goals")
-
-    .delete()
-
-    .eq("id", goal.id)
-
-    .eq("user_id", currentUser.id);
+  } =
+    await supabaseClient
+      .from("goals")
+      .delete()
+      .eq(
+        "id",
+        goal.id
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      );
 
 
   if (error) {
@@ -741,9 +961,9 @@ async function deleteGoal(goal) {
 
   goals =
     goals.filter(
-      item => item.id !== goal.id
+      item =>
+        item.id !== goal.id
     );
-
 
   updatePeriodView();
 
@@ -751,7 +971,7 @@ async function deleteGoal(goal) {
 
 
 /* =========================================================
-   15. UPDATE PERIOD VIEW
+   UPDATE VIEW
 ========================================================= */
 
 function updatePeriodView() {
@@ -761,28 +981,40 @@ function updatePeriodView() {
   hideAllPeriodSections();
 
 
-  if (currentPeriod === "daily") {
+  if (
+    currentPeriod ===
+    "daily"
+  ) {
 
     renderDaily();
 
   }
 
 
-  if (currentPeriod === "weekly") {
+  if (
+    currentPeriod ===
+    "weekly"
+  ) {
 
     renderWeekly();
 
   }
 
 
-  if (currentPeriod === "monthly") {
+  if (
+    currentPeriod ===
+    "monthly"
+  ) {
 
     renderMonthly();
 
   }
 
 
-  if (currentPeriod === "yearly") {
+  if (
+    currentPeriod ===
+    "yearly"
+  ) {
 
     renderYearly();
 
@@ -795,63 +1027,103 @@ function updatePeriodView() {
 
 
 /* =========================================================
-   16. HIDE PERIOD SECTIONS
+   HIDE SECTIONS
 ========================================================= */
 
 function hideAllPeriodSections() {
 
-  weeklySection.classList.add("hidden");
+  if (weeklySection) {
 
-  monthlySection.classList.add("hidden");
+    weeklySection.classList.add(
+      "hidden"
+    );
 
-  yearlySection.classList.add("hidden");
+  }
+
+  if (monthlySection) {
+
+    monthlySection.classList.add(
+      "hidden"
+    );
+
+  }
+
+  if (yearlySection) {
+
+    yearlySection.classList.add(
+      "hidden"
+    );
+
+  }
 
 }
 
 
 /* =========================================================
-   17. DAILY VIEW
+   DAILY
 ========================================================= */
 
 function renderDaily() {
 
   const dateString =
-    formatDateForDatabase(currentDate);
+    formatDateForDatabase(
+      currentDate
+    );
 
 
   const dailyGoals =
     goals.filter(
-      goal => goal.goal_date === dateString
+      goal =>
+        goal.goal_date ===
+        dateString
     );
 
 
-  renderGoalsList(dailyGoals);
+  renderGoalsList(
+    dailyGoals
+  );
 
 
-  updateStats(dailyGoals);
+  updateStats(
+    dailyGoals
+  );
 
 }
 
 
 /* =========================================================
-   18. WEEKLY VIEW
+   WEEKLY
 ========================================================= */
 
 function renderWeekly() {
 
-  weeklySection.classList.remove("hidden");
+  if (weeklySection) {
+
+    weeklySection.classList.remove(
+      "hidden"
+    );
+
+  }
+
 
   const start =
-    getStartOfWeek(currentDate);
+    getStartOfWeek(
+      currentDate
+    );
 
 
   let html = "";
 
 
-  for (let i = 0; i < 7; i++) {
+  for (
+    let i = 0;
+    i < 7;
+    i++
+  ) {
 
     const date =
       new Date(start);
+
 
     date.setDate(
       start.getDate() + i
@@ -859,12 +1131,16 @@ function renderWeekly() {
 
 
     const dateString =
-      formatDateForDatabase(date);
+      formatDateForDatabase(
+        date
+      );
 
 
     const dayGoals =
       goals.filter(
-        goal => goal.goal_date === dateString
+        goal =>
+          goal.goal_date ===
+          dateString
       );
 
 
@@ -874,7 +1150,8 @@ function renderWeekly() {
 
     const completed =
       dayGoals.filter(
-        goal => goal.completed
+        goal =>
+          goal.completed
       ).length;
 
 
@@ -882,7 +1159,10 @@ function renderWeekly() {
       total === 0
         ? 0
         : Math.round(
-            (completed / total) * 100
+            (
+              completed /
+              total
+            ) * 100
           );
 
 
@@ -897,7 +1177,8 @@ function renderWeekly() {
           </span>
 
           <strong>
-            ${completed}/${total} (${percent}%)
+            ${completed}/${total}
+            (${percent}%)
           </strong>
 
         </div>
@@ -918,18 +1199,29 @@ function renderWeekly() {
   }
 
 
-  weeklyStats.innerHTML = html;
+  if (weeklyStats) {
+
+    weeklyStats.innerHTML =
+      html;
+
+  }
 
 }
 
 
 /* =========================================================
-   19. MONTHLY VIEW
+   MONTHLY
 ========================================================= */
 
 function renderMonthly() {
 
-  monthlySection.classList.remove("hidden");
+  if (monthlySection) {
+
+    monthlySection.classList.remove(
+      "hidden"
+    );
+
+  }
 
 
   const year =
@@ -937,7 +1229,6 @@ function renderMonthly() {
 
   const month =
     currentDate.getMonth();
-
 
   const daysInMonth =
     new Date(
@@ -950,7 +1241,11 @@ function renderMonthly() {
   let html = "";
 
 
-  for (let day = 1; day <= daysInMonth; day++) {
+  for (
+    let day = 1;
+    day <= daysInMonth;
+    day++
+  ) {
 
     const date =
       new Date(
@@ -961,12 +1256,16 @@ function renderMonthly() {
 
 
     const dateString =
-      formatDateForDatabase(date);
+      formatDateForDatabase(
+        date
+      );
 
 
     const dayGoals =
       goals.filter(
-        goal => goal.goal_date === dateString
+        goal =>
+          goal.goal_date ===
+          dateString
       );
 
 
@@ -976,7 +1275,8 @@ function renderMonthly() {
 
     const completed =
       dayGoals.filter(
-        goal => goal.completed
+        goal =>
+          goal.completed
       ).length;
 
 
@@ -984,7 +1284,10 @@ function renderMonthly() {
       total === 0
         ? 0
         : Math.round(
-            (completed / total) * 100
+            (
+              completed /
+              total
+            ) * 100
           );
 
 
@@ -999,7 +1302,8 @@ function renderMonthly() {
           </span>
 
           <strong>
-            ${completed}/${total} (${percent}%)
+            ${completed}/${total}
+            (${percent}%)
           </strong>
 
         </div>
@@ -1020,18 +1324,29 @@ function renderMonthly() {
   }
 
 
-  monthlyStats.innerHTML = html;
+  if (monthlyStats) {
+
+    monthlyStats.innerHTML =
+      html;
+
+  }
 
 }
 
 
 /* =========================================================
-   20. YEARLY VIEW
+   YEARLY
 ========================================================= */
 
 function renderYearly() {
 
-  yearlySection.classList.remove("hidden");
+  if (yearlySection) {
+
+    yearlySection.classList.remove(
+      "hidden"
+    );
+
+  }
 
   renderYearlyCalendar();
 
@@ -1039,16 +1354,26 @@ function renderYearly() {
 
 
 /* =========================================================
-   21. YEAR CALENDAR
+   YEAR CALENDAR
 ========================================================= */
 
 function renderYearlyCalendar() {
 
-  yearText.textContent =
-    currentYear;
+  if (!yearCalendar) {
+    return;
+  }
 
 
-  yearCalendar.innerHTML = "";
+  if (yearText) {
+
+    yearText.textContent =
+      currentYear;
+
+  }
+
+
+  yearCalendar.innerHTML =
+    "";
 
 
   const firstDay =
@@ -1060,15 +1385,23 @@ function renderYearlyCalendar() {
 
 
   const daysInYear =
-    isLeapYear(currentYear)
+    isLeapYear(
+      currentYear
+    )
       ? 366
       : 365;
 
 
-  for (let i = 0; i < firstDay; i++) {
+  for (
+    let i = 0;
+    i < firstDay;
+    i++
+  ) {
 
     const blank =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     blank.className =
       "calendar-day";
@@ -1076,7 +1409,9 @@ function renderYearlyCalendar() {
     blank.style.visibility =
       "hidden";
 
-    yearCalendar.appendChild(blank);
+    yearCalendar.appendChild(
+      blank
+    );
 
   }
 
@@ -1101,13 +1436,16 @@ function renderYearlyCalendar() {
 
 
     const dateString =
-      formatDateForDatabase(date);
+      formatDateForDatabase(
+        date
+      );
 
 
     const dayGoals =
       goals.filter(
         goal =>
-          goal.goal_date === dateString
+          goal.goal_date ===
+          dateString
       );
 
 
@@ -1117,17 +1455,22 @@ function renderYearlyCalendar() {
 
     const completed =
       dayGoals.filter(
-        goal => goal.completed
+        goal =>
+          goal.completed
       ).length;
 
 
-    totalGoals += total;
+    totalGoals +=
+      total;
 
-    totalCompleted += completed;
+    totalCompleted +=
+      completed;
 
 
     const dayElement =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
 
     dayElement.className =
@@ -1143,7 +1486,9 @@ function renderYearlyCalendar() {
         "complete"
       );
 
-    } else if (completed > 0) {
+    } else if (
+      completed > 0
+    ) {
 
       dayElement.classList.add(
         "partial"
@@ -1157,9 +1502,12 @@ function renderYearlyCalendar() {
 
 
     if (
-      date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate()
+      date.getFullYear() ===
+        today.getFullYear() &&
+      date.getMonth() ===
+        today.getMonth() &&
+      date.getDate() ===
+        today.getDate()
     ) {
 
       dayElement.classList.add(
@@ -1184,174 +1532,233 @@ function renderYearlyCalendar() {
     totalGoals === 0
       ? 0
       : Math.round(
-          (totalCompleted / totalGoals) * 100
+          (
+            totalCompleted /
+            totalGoals
+          ) * 100
         );
 
 
-  yearTotalGoals.textContent =
-    totalGoals;
+  if (yearTotalGoals) {
+
+    yearTotalGoals.textContent =
+      totalGoals;
+
+  }
 
 
-  yearCompletedGoals.textContent =
-    totalCompleted;
+  if (yearCompletedGoals) {
+
+    yearCompletedGoals.textContent =
+      totalCompleted;
+
+  }
 
 
-  yearSuccessRate.textContent =
-    `${rate}%`;
+  if (yearSuccessRate) {
+
+    yearSuccessRate.textContent =
+      `${rate}%`;
+
+  }
 
 }
 
 
 /* =========================================================
-   22. RENDER GOALS LIST
+   GOALS LIST
 ========================================================= */
 
-function renderGoalsList(goalArray) {
+function renderGoalsList(
+  goalArray
+) {
 
-  goalsList.innerHTML = "";
+  if (!goalsList) {
+    return;
+  }
 
 
-  if (goalArray.length === 0) {
+  goalsList.innerHTML =
+    "";
 
-    goalsList.appendChild(
-      emptyState
-    );
 
-    emptyState.classList.remove(
-      "hidden"
-    );
+  if (
+    goalArray.length === 0
+  ) {
 
-    goalCount.textContent =
-      "0 goals";
+    if (emptyState) {
+
+      goalsList.appendChild(
+        emptyState
+      );
+
+      emptyState.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    if (goalCount) {
+
+      goalCount.textContent =
+        "0 goals";
+
+    }
+
 
     return;
 
   }
 
 
-  emptyState.classList.add(
-    "hidden"
+  if (emptyState) {
+
+    emptyState.classList.add(
+      "hidden"
+    );
+
+  }
+
+
+  if (goalCount) {
+
+    goalCount.textContent =
+      `${goalArray.length} ${
+        goalArray.length === 1
+          ? "goal"
+          : "goals"
+      }`;
+
+  }
+
+
+  goalArray.forEach(
+    goal => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "goal-item";
+
+
+      if (
+        goal.completed
+      ) {
+
+        item.classList.add(
+          "completed"
+        );
+
+      }
+
+
+      const checkbox =
+        document.createElement(
+          "button"
+        );
+
+
+      checkbox.className =
+        "goal-checkbox";
+
+
+      if (
+        goal.completed
+      ) {
+
+        checkbox.classList.add(
+          "completed"
+        );
+
+        checkbox.textContent =
+          "✓";
+
+      }
+
+
+      checkbox.addEventListener(
+        "click",
+        () =>
+          toggleGoal(goal)
+      );
+
+
+      const title =
+        document.createElement(
+          "div"
+        );
+
+
+      title.className =
+        "goal-title";
+
+
+      title.textContent =
+        goal.title;
+
+
+      const deleteButton =
+        document.createElement(
+          "button"
+        );
+
+
+      deleteButton.className =
+        "delete-goal";
+
+
+      deleteButton.textContent =
+        "🗑";
+
+
+      deleteButton.setAttribute(
+        "aria-label",
+        "Delete goal"
+      );
+
+
+      deleteButton.addEventListener(
+        "click",
+        () =>
+          deleteGoal(goal)
+      );
+
+
+      item.appendChild(
+        checkbox
+      );
+
+      item.appendChild(
+        title
+      );
+
+      item.appendChild(
+        deleteButton
+      );
+
+
+      goalsList.appendChild(
+        item
+      );
+
+    }
   );
-
-
-  goalCount.textContent =
-    `${goalArray.length} ${
-      goalArray.length === 1
-        ? "goal"
-        : "goals"
-    }`;
-
-
-  goalArray.forEach(goal => {
-
-    const item =
-      document.createElement("div");
-
-
-    item.className =
-      "goal-item";
-
-
-    if (goal.completed) {
-
-      item.classList.add(
-        "completed"
-      );
-
-    }
-
-
-    const checkbox =
-      document.createElement("button");
-
-
-    checkbox.className =
-      "goal-checkbox";
-
-
-    if (goal.completed) {
-
-      checkbox.classList.add(
-        "completed"
-      );
-
-      checkbox.textContent =
-        "✓";
-
-    }
-
-
-    checkbox.addEventListener(
-      "click",
-      () => toggleGoal(goal)
-    );
-
-
-    const title =
-      document.createElement("div");
-
-
-    title.className =
-      "goal-title";
-
-
-    title.textContent =
-      goal.title;
-
-
-    const deleteButton =
-      document.createElement("button");
-
-
-    deleteButton.className =
-      "delete-goal";
-
-
-    deleteButton.textContent =
-      "🗑";
-
-
-    deleteButton.setAttribute(
-      "aria-label",
-      "Delete goal"
-    );
-
-
-    deleteButton.addEventListener(
-      "click",
-      () => deleteGoal(goal)
-    );
-
-
-    item.appendChild(
-      checkbox
-    );
-
-
-    item.appendChild(
-      title
-    );
-
-
-    item.appendChild(
-      deleteButton
-    );
-
-
-    goalsList.appendChild(
-      item
-    );
-
-  });
 
 }
 
 
 /* =========================================================
-   23. UPDATE STATS
+   STATISTICS
 ========================================================= */
 
-function updateStats(goalArray) {
+function updateStats(
+  goalArray
+) {
 
   const total =
     goalArray.length;
@@ -1359,7 +1766,8 @@ function updateStats(goalArray) {
 
   const completed =
     goalArray.filter(
-      goal => goal.completed
+      goal =>
+        goal.completed
     ).length;
 
 
@@ -1367,40 +1775,66 @@ function updateStats(goalArray) {
     total === 0
       ? 0
       : Math.round(
-          (completed / total) * 100
+          (
+            completed /
+            total
+          ) * 100
         );
 
 
-  completedCount.textContent =
-    completed;
+  if (completedCount) {
+
+    completedCount.textContent =
+      completed;
+
+  }
 
 
-  totalCountText.textContent =
-    `/ ${total}`;
+  if (totalCountText) {
+
+    totalCountText.textContent =
+      `/ ${total}`;
+
+  }
 
 
-  progressPercent.textContent =
-    `${percent}%`;
+  if (progressPercent) {
+
+    progressPercent.textContent =
+      `${percent}%`;
+
+  }
 
 
-  progressText.textContent =
-    `${percent}%`;
+  if (progressText) {
+
+    progressText.textContent =
+      `${percent}%`;
+
+  }
 
 
-  progressBar.style.width =
-    `${percent}%`;
+  if (progressBar) {
+
+    progressBar.style.width =
+      `${percent}%`;
+
+  }
 
 }
 
 
 /* =========================================================
-   24. DATE CHANGE
+   CHANGE DATE
 ========================================================= */
 
-function changeDate(amount) {
+function changeDate(
+  amount
+) {
 
   currentDate.setDate(
-    currentDate.getDate() + amount
+    currentDate.getDate() +
+      amount
   );
 
 
@@ -1414,10 +1848,20 @@ function changeDate(amount) {
 
 
 /* =========================================================
-   25. DATE DISPLAY
+   DATE DISPLAY
 ========================================================= */
 
 function updateDateDisplay() {
+
+  if (
+    !currentDateText ||
+    !currentDateSubtext
+  ) {
+
+    return;
+
+  }
+
 
   const today =
     new Date();
@@ -1435,7 +1879,10 @@ function updateDateDisplay() {
     );
 
 
-  if (selected === todayString) {
+  if (
+    selected ===
+    todayString
+  ) {
 
     currentDateText.textContent =
       "Today";
@@ -1446,7 +1893,8 @@ function updateDateDisplay() {
       currentDate.toLocaleDateString(
         undefined,
         {
-          weekday: "long"
+          weekday:
+            "long"
         }
       );
 
@@ -1457,9 +1905,15 @@ function updateDateDisplay() {
     currentDate.toLocaleDateString(
       undefined,
       {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
+        day:
+          "numeric",
+
+        month:
+          "long",
+
+        year:
+          "numeric"
+
       }
     );
 
@@ -1467,21 +1921,30 @@ function updateDateDisplay() {
 
 
 /* =========================================================
-   26. GREETING
+   GREETING
 ========================================================= */
 
 function setGreeting() {
+
+  if (!greeting) {
+    return;
+  }
+
 
   const hour =
     new Date().getHours();
 
 
-  if (hour < 12) {
+  if (
+    hour < 12
+  ) {
 
     greeting.textContent =
       "Good morning 👋";
 
-  } else if (hour < 18) {
+  } else if (
+    hour < 18
+  ) {
 
     greeting.textContent =
       "Good afternoon 👋";
@@ -1497,15 +1960,19 @@ function setGreeting() {
 
 
 /* =========================================================
-   27. STREAK
+   STREAK
 ========================================================= */
 
 async function calculateStreak() {
 
   if (!currentUser) {
 
-    streakCount.textContent =
-      "0";
+    if (streakCount) {
+
+      streakCount.textContent =
+        "0";
+
+    }
 
     return;
 
@@ -1518,19 +1985,29 @@ async function calculateStreak() {
     new Date();
 
 
-  for (let i = 0; i < 365; i++) {
+  for (
+    let i = 0;
+    i < 365;
+    i++
+  ) {
 
     const dateString =
-      formatDateForDatabase(date);
+      formatDateForDatabase(
+        date
+      );
 
 
     const dayGoals =
       goals.filter(
-        goal => goal.goal_date === dateString
+        goal =>
+          goal.goal_date ===
+          dateString
       );
 
 
-    if (dayGoals.length === 0) {
+    if (
+      dayGoals.length === 0
+    ) {
 
       break;
 
@@ -1539,7 +2016,8 @@ async function calculateStreak() {
 
     const allCompleted =
       dayGoals.every(
-        goal => goal.completed
+        goal =>
+          goal.completed
       );
 
 
@@ -1560,17 +2038,23 @@ async function calculateStreak() {
   }
 
 
-  streakCount.textContent =
-    streak;
+  if (streakCount) {
+
+    streakCount.textContent =
+      streak;
+
+  }
 
 }
 
 
 /* =========================================================
-   28. HELPER FUNCTIONS
+   DATE HELPERS
 ========================================================= */
 
-function formatDateForDatabase(date) {
+function formatDateForDatabase(
+  date
+) {
 
   const year =
     date.getFullYear();
@@ -1579,13 +2063,19 @@ function formatDateForDatabase(date) {
   const month =
     String(
       date.getMonth() + 1
-    ).padStart(2, "0");
+    ).padStart(
+      2,
+      "0"
+    );
 
 
   const day =
     String(
       date.getDate()
-    ).padStart(2, "0");
+    ).padStart(
+      2,
+      "0"
+    );
 
 
   return `${year}-${month}-${day}`;
@@ -1593,21 +2083,31 @@ function formatDateForDatabase(date) {
 }
 
 
-function formatShortDate(date) {
+function formatShortDate(
+  date
+) {
 
   return date.toLocaleDateString(
     undefined,
     {
-      weekday: "short",
-      day: "numeric",
-      month: "short"
+      weekday:
+        "short",
+
+      day:
+        "numeric",
+
+      month:
+        "short"
+
     }
   );
 
 }
 
 
-function getStartOfWeek(date) {
+function getStartOfWeek(
+  date
+) {
 
   const result =
     new Date(date);
@@ -1618,7 +2118,8 @@ function getStartOfWeek(date) {
 
 
   result.setDate(
-    result.getDate() - day
+    result.getDate() -
+      day
   );
 
 
@@ -1635,7 +2136,9 @@ function getStartOfWeek(date) {
 }
 
 
-function isLeapYear(year) {
+function isLeapYear(
+  year
+) {
 
   return (
     year % 4 === 0 &&
@@ -1648,15 +2151,36 @@ function isLeapYear(year) {
 }
 
 
-function showAuthMessage(message) {
+/* =========================================================
+   MESSAGES
+========================================================= */
 
-  authMessage.textContent =
-    message;
+function showAuthMessage(
+  message
+) {
+
+  if (authMessage) {
+
+    authMessage.textContent =
+      message;
+
+  }
 
 }
 
 
-function showLoading(show) {
+/* =========================================================
+   LOADING
+========================================================= */
+
+function showLoading(
+  show
+) {
+
+  if (!loadingScreen) {
+    return;
+  }
+
 
   if (show) {
 
@@ -1672,4 +2196,4 @@ function showLoading(show) {
 
   }
 
-          }
+}
