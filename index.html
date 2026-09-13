@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Daily Goals Tracker</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <!-- =========================
+       LOGIN / REGISTER SCREEN
+  ========================== -->
+
+  <div id="authScreen" class="auth-screen">
+
+    <div class="auth-card">
+
+      <div class="logo">
+        ✓
+      </div>
+
+      <h1>Daily Goals</h1>
+      <p class="subtitle">Build better habits, one day at a time.</p>
+
+      <!-- Auth Tabs -->
+
+      <div class="auth-tabs">
+        <button id="loginTab" class="auth-tab active">
+          Login
+        </button>
+
+        <button id="registerTab" class="auth-tab">
+          Register
+        </button>
+      </div>
+
+      <!-- Email -->
+
+      <label for="email">Email</label>
+
+      <input
+        type="email"
+        id="email"
+        placeholder="Enter your email"
+        autocomplete="email"
+      >
+
+      <!-- Password -->
+
+      <label for="password">Password</label>
+
+      <input
+        type="password"
+        id="password"
+        placeholder="Enter your password"
+        autocomplete="current-password"
+      >
+
+      <!-- Auth Button -->
+
+      <button id="authButton" class="primary-button">
+        Login
+      </button>
+
+      <p id="authMessage" class="message"></p>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================
+       MAIN DASHBOARD
+  ========================== -->
+
+  <div id="appScreen" class="app-screen hidden">
+
+    <!-- HEADER -->
+
+    <header class="top-header">
+
+      <div>
+        <h1>Daily Goals</h1>
+        <p id="userEmail"></p>
+      </div>
+
+      <button id="logoutButton" class="logout-button">
+        Logout
+      </button>
+
+    </header>
+
+
+    <!-- =========================
+         DASHBOARD CONTENT
+    ========================== -->
+
+    <main class="container">
+
+      <!-- GREETING -->
+
+      <section class="welcome-section">
+
+        <h2 id="greeting">
+          Good morning 👋
+        </h2>
+
+        <p>
+          Stay consistent. Small progress every day.
+        </p>
+
+      </section>
+
+
+      <!-- =========================
+           STATISTICS
+      ========================== -->
+
+      <section class="stats-grid">
+
+        <div class="stat-card">
+
+          <div class="stat-icon">
+            🔥
+          </div>
+
+          <div>
+            <span>Current Streak</span>
+            <strong id="streakCount">0</strong>
+            <small>days</small>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-icon">
+            🎯
+          </div>
+
+          <div>
+            <span>Completed</span>
+            <strong id="completedCount">0</strong>
+            <small id="totalCountText">/ 0</small>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-icon">
+            📊
+          </div>
+
+          <div>
+            <span>Progress</span>
+            <strong id="progressPercent">0%</strong>
+            <small>today</small>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           PERIOD NAVIGATION
+      ========================== -->
+
+      <section class="period-section">
+
+        <div class="period-tabs">
+
+          <button
+            class="period-tab active"
+            data-period="daily">
+            Daily
+          </button>
+
+          <button
+            class="period-tab"
+            data-period="weekly">
+            Weekly
+          </button>
+
+          <button
+            class="period-tab"
+            data-period="monthly">
+            Monthly
+          </button>
+
+          <button
+            class="period-tab"
+            data-period="yearly">
+            Yearly
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           DATE NAVIGATION
+      ========================== -->
+
+      <section class="date-navigation">
+
+        <button id="previousDate" class="date-button">
+          ←
+        </button>
+
+        <div class="current-date">
+
+          <strong id="currentDateText">
+            Today
+          </strong>
+
+          <span id="currentDateSubtext">
+            Loading...
+          </span>
+
+        </div>
+
+        <button id="nextDate" class="date-button">
+          →
+        </button>
+
+      </section>
+
+
+      <!-- =========================
+           PROGRESS BAR
+      ========================== -->
+
+      <section class="progress-section">
+
+        <div class="progress-header">
+
+          <span>
+            Today's Progress
+          </span>
+
+          <strong id="progressText">
+            0%
+          </strong>
+
+        </div>
+
+        <div class="progress-bar">
+
+          <div
+            id="progressBar"
+            class="progress-fill"
+            style="width: 0%;">
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           ADD GOAL
+      ========================== -->
+
+      <section class="add-goal-section">
+
+        <input
+          type="text"
+          id="goalInput"
+          placeholder="What do you want to accomplish?"
+          maxlength="200"
+        >
+
+        <button id="addGoalButton" class="add-button">
+          + Add Goal
+        </button>
+
+      </section>
+
+
+      <!-- =========================
+           GOALS LIST
+      ========================== -->
+
+      <section class="goals-section">
+
+        <div class="section-title">
+
+          <h2>
+            Your Goals
+          </h2>
+
+          <span id="goalCount">
+            0 goals
+          </span>
+
+        </div>
+
+        <div id="goalsList" class="goals-list">
+
+          <!-- Goals will appear here -->
+
+          <div id="emptyState" class="empty-state">
+
+            <div class="empty-icon">
+              📝
+            </div>
+
+            <h3>No goals yet</h3>
+
+            <p>
+              Add your first goal and start building your streak.
+            </p>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           WEEKLY PROGRESS
+      ========================== -->
+
+      <section
+        id="weeklySection"
+        class="statistics-section hidden">
+
+        <div class="section-title">
+
+          <h2>
+            Weekly Progress
+          </h2>
+
+        </div>
+
+        <div id="weeklyStats" class="period-stats">
+          <!-- Generated by JavaScript -->
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           MONTHLY PROGRESS
+      ========================== -->
+
+      <section
+        id="monthlySection"
+        class="statistics-section hidden">
+
+        <div class="section-title">
+
+          <h2>
+            Monthly Progress
+          </h2>
+
+        </div>
+
+        <div id="monthlyStats" class="period-stats">
+          <!-- Generated by JavaScript -->
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           YEARLY PROGRESS
+      ========================== -->
+
+      <section
+        id="yearlySection"
+        class="statistics-section hidden">
+
+        <div class="section-title">
+
+          <h2>
+            Yearly Progress
+          </h2>
+
+        </div>
+
+        <div class="year-header">
+
+          <button id="previousYear">
+            ←
+          </button>
+
+          <strong id="yearText">
+            2026
+          </strong>
+
+          <button id="nextYear">
+            →
+          </button>
+
+        </div>
+
+        <!-- Year Calendar -->
+
+        <div class="calendar-container">
+
+          <div class="calendar-weekdays">
+
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+
+          </div>
+
+          <div
+            id="yearCalendar"
+            class="year-calendar">
+
+            <!-- Generated by JavaScript -->
+
+          </div>
+
+        </div>
+
+
+        <!-- Year Summary -->
+
+        <div class="year-summary">
+
+          <div class="summary-card">
+
+            <span>Total Goals</span>
+
+            <strong id="yearTotalGoals">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="summary-card">
+
+            <span>Completed</span>
+
+            <strong id="yearCompletedGoals">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="summary-card">
+
+            <span>Success Rate</span>
+
+            <strong id="yearSuccessRate">
+              0%
+            </strong>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =========================
+           TIPS
+      ========================== -->
+
+      <section class="tips-card">
+
+        <div class="tips-icon">
+          💡
+        </div>
+
+        <div>
+
+          <h3>
+            Daily Tip
+          </h3>
+
+          <p>
+            Focus on consistency rather than perfection.
+            Completing small goals every day creates powerful habits.
+          </p>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <!-- =========================
+         FOOTER
+    ========================== -->
+
+    <footer>
+
+      <p>
+        Daily Goals Tracker
+      </p>
+
+      <span>
+        Make today count.
+      </span>
+
+    </footer>
+
+  </div>
+
+
+  <!-- =========================
+       LOADING SCREEN
+  ========================== -->
+
+  <div id="loadingScreen" class="loading-screen hidden">
+
+    <div class="loader"></div>
+
+    <p>
+      Loading...
+    </p>
+
+  </div>
+
+
+  <!-- JavaScript -->
+
+  <script src="app.js"></script>
+
+</body>
+</html>
