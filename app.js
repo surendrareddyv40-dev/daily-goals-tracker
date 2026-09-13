@@ -1,11 +1,12 @@
 /* =========================================================
    DAILY GOALS TRACKER
    Supabase + JavaScript
-   ========================================================= */
+========================================================= */
 
-/* =========================
-   1. SUPABASE CONNECTION
-   ========================= */
+
+/* =========================================================
+   SUPABASE CONNECTION
+========================================================= */
 
 const SUPABASE_URL =
   "https://bvzvrxftmeldsxzpvibq.supabase.co";
@@ -13,1241 +14,2186 @@ const SUPABASE_URL =
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_URrHQtxJb_kGfyInNLyvbQ_EImnzyBE";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
 
 
-/* =========================
-   2. APP STATE
-   ========================= */
+/* =========================================================
+   APP VARIABLES
+========================================================= */
 
 let currentUser = null;
 let currentDate = new Date();
 let currentPeriod = "daily";
-let allGoals = [];
-
-
-/* =========================
-   3. HELPER FUNCTIONS
-   ========================= */
-
-function $(id) {
-  return document.getElementById(id);
-}
-
-function todayString() {
-  return new Date().toISOString().split("T")[0];
-}
+let currentYear = new Date().getFullYear();
+let goals = [];
+let isRegisterMode = false;
 
-function dateString(date) {
-  return date.toISOString().split("T")[0];
-}
 
-function escapeHTML(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function getStartOfWeek(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
-function getEndOfWeek(date) {
-  const d = getStartOfWeek(date);
-  d.setDate(d.getDate() + 6);
-  return d;
-}
-
-function getStartOfMonth(date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function getEndOfMonth(date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
-
-function formatDate(date) {
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  });
-}
-
-function formatShortDate(date) {
-  return date.toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short"
-  });
-}
-
-
-/* =========================
-   4. AUTH SCREEN
-   ========================= */
-
-async function checkUser() {
-  const { data } = await supabaseClient.auth.getSession();
-
-  if (data && data.session) {
-    currentUser = data.session.user;
-    showDashboard();
-    await loadGoals();
-  } else {
-    currentUser = null;
-    showAuth();
-  }
-}
+/* =========================================================
+   HTML ELEMENTS
+========================================================= */
 
+const authScreen =
+  document.getElementById("authScreen");
 
-function showAuth() {
-  const auth = $("auth-screen");
-  const dashboard = $("dashboard");
+const appScreen =
+  document.getElementById("appScreen");
 
-  if (auth) auth.style.display = "";
-  if (dashboard) dashboard.style.display = "none";
-}
+const loadingScreen =
+  document.getElementById("loadingScreen");
 
+const loginTab =
+  document.getElementById("loginTab");
 
-function showDashboard() {
-  const auth = $("auth-screen");
-  const dashboard = $("dashboard");
+const registerTab =
+  document.getElementById("registerTab");
 
-  if (auth) auth.style.display = "none";
-  if (dashboard) dashboard.style.display = "";
+const authButton =
+  document.getElementById("authButton");
 
-  updateUserInfo();
-}
+const emailInput =
+  document.getElementById("email");
 
+const passwordInput =
+  document.getElementById("password");
 
-function updateUserInfo() {
-  if (!currentUser) return;
+const authMessage =
+  document.getElementById("authMessage");
 
-  const emailElements = document.querySelectorAll(
-    "#user-email, .user-email"
-  );
+const userEmail =
+  document.getElementById("userEmail");
 
-  emailElements.forEach(el => {
-    el.textContent = currentUser.email || "";
-  });
-}
+const logoutButton =
+  document.getElementById("logoutButton");
 
+const goalInput =
+  document.getElementById("goalInput");
 
-/* =========================
-   5. REGISTER
-   ========================= */
+const addGoalButton =
+  document.getElementById("addGoalButton");
 
-async function registerUser(email, password) {
-  const { data, error } =
-    await supabaseClient.auth.signUp({
-      email: email.trim(),
-      password: password
-    });
+const goalsList =
+  document.getElementById("goalsList");
 
-  if (error) {
-    alert(error.message);
-    return false;
-  }
+const emptyState =
+  document.getElementById("emptyState");
 
-  if (data.user && !data.session) {
-    alert(
-      "Registration successful! Please check your email and verify your account."
-    );
-  } else {
-    alert("Registration successful!");
-  }
+const goalCount =
+  document.getElementById("goalCount");
 
-  return true;
-}
+const completedCount =
+  document.getElementById("completedCount");
 
+const totalCountText =
+  document.getElementById("totalCountText");
 
-/* =========================
-   6. LOGIN
-   ========================= */
+const progressPercent =
+  document.getElementById("progressPercent");
 
-async function loginUser(email, password) {
-  const { data, error } =
-    await supabaseClient.auth.signInWithPassword({
-      email: email.trim(),
-      password: password
-    });
+const progressText =
+  document.getElementById("progressText");
 
-  if (error) {
-    alert(error.message);
-    return false;
-  }
+const progressBar =
+  document.getElementById("progressBar");
 
-  currentUser = data.user;
+const streakCount =
+  document.getElementById("streakCount");
 
-  showDashboard();
-  await loadGoals();
+const currentDateText =
+  document.getElementById("currentDateText");
 
-  return true;
-}
+const currentDateSubtext =
+  document.getElementById("currentDateSubtext");
 
+const previousDate =
+  document.getElementById("previousDate");
 
-/* =========================
-   7. LOGOUT
-   ========================= */
+const nextDate =
+  document.getElementById("nextDate");
 
-async function logoutUser() {
-  await supabaseClient.auth.signOut();
+const greeting =
+  document.getElementById("greeting");
 
-  currentUser = null;
-  allGoals = [];
+const weeklySection =
+  document.getElementById("weeklySection");
 
-  showAuth();
-}
+const monthlySection =
+  document.getElementById("monthlySection");
 
+const yearlySection =
+  document.getElementById("yearlySection");
 
-/* =========================
-   8. LOAD GOALS
-   ========================= */
+const weeklyStats =
+  document.getElementById("weeklyStats");
 
-async function loadGoals() {
-  if (!currentUser) return;
+const monthlyStats =
+  document.getElementById("monthlyStats");
 
-  const { data, error } = await supabaseClient
-    .from("goals")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .order("goal_date", { ascending: false })
-    .order("created_at", { ascending: true });
+const yearCalendar =
+  document.getElementById("yearCalendar");
 
-  if (error) {
-    console.error(error);
-    alert("Could not load goals: " + error.message);
-    return;
-  }
+const yearText =
+  document.getElementById("yearText");
 
-  allGoals = data || [];
+const previousYear =
+  document.getElementById("previousYear");
 
-  renderEverything();
-}
+const nextYear =
+  document.getElementById("nextYear");
 
+const yearTotalGoals =
+  document.getElementById("yearTotalGoals");
 
-/* =========================
-   9. ADD GOAL
-   ========================= */
+const yearCompletedGoals =
+  document.getElementById("yearCompletedGoals");
 
-async function addGoal(title, goalDate) {
-  if (!currentUser) {
-    alert("Please login first.");
-    return;
-  }
+const yearSuccessRate =
+  document.getElementById("yearSuccessRate");
 
-  title = title.trim();
 
-  if (!title) {
-    alert("Please enter a goal.");
-    return;
-  }
+/* =========================================================
+   START APP
+========================================================= */
 
-  if (!goalDate) {
-    goalDate = todayString();
-  }
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
 
-  const { error } = await supabaseClient
-    .from("goals")
-    .insert({
-      user_id: currentUser.id,
-      title: title,
-      goal_date: goalDate,
-      completed: false
-    });
+    setGreeting();
+    updateDateDisplay();
+    setupEventListeners();
 
-  if (error) {
-    console.error(error);
-    alert("Could not add goal: " + error.message);
-    return;
-  }
+    showLoading(true);
 
-  await loadGoals();
-}
+    const {
+      data: {
+        session
+      }
+    } =
+      await supabaseClient.auth.getSession();
 
+    if (
+      session &&
+      session.user
+    ) {
 
-/* =========================
-   10. TOGGLE GOAL
-   ========================= */
+      currentUser =
+        session.user;
 
-async function toggleGoal(id, completed) {
-  const { error } = await supabaseClient
-    .from("goals")
-    .update({
-      completed: completed
-    })
-    .eq("id", id)
-    .eq("user_id", currentUser.id);
+      showApp();
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+      await loadGoals();
 
-  await loadGoals();
-}
-
-
-/* =========================
-   11. DELETE GOAL
-   ========================= */
-
-async function deleteGoal(id) {
-  if (!confirm("Delete this goal?")) return;
-
-  const { error } = await supabaseClient
-    .from("goals")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", currentUser.id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  await loadGoals();
-}
-
-
-/* =========================
-   12. GET PERIOD GOALS
-   ========================= */
-
-function getPeriodGoals() {
-  if (!allGoals.length) return [];
-
-  let start;
-  let end;
-
-  if (currentPeriod === "daily") {
-    start = dateString(currentDate);
-    end = start;
-  }
-
-  if (currentPeriod === "weekly") {
-    start = dateString(getStartOfWeek(currentDate));
-    end = dateString(getEndOfWeek(currentDate));
-  }
-
-  if (currentPeriod === "monthly") {
-    start = dateString(getStartOfMonth(currentDate));
-    end = dateString(getEndOfMonth(currentDate));
-  }
-
-  if (currentPeriod === "yearly") {
-    start = `${currentDate.getFullYear()}-01-01`;
-    end = `${currentDate.getFullYear()}-12-31`;
-  }
-
-  return allGoals.filter(goal =>
-    goal.goal_date >= start &&
-    goal.goal_date <= end
-  );
-}
-
-
-/* =========================
-   13. CALCULATE STATISTICS
-   ========================= */
-
-function calculateStats(goals) {
-  const total = goals.length;
-
-  const completed = goals.filter(
-    goal => goal.completed
-  ).length;
-
-  const remaining = total - completed;
-
-  const percentage =
-    total === 0
-      ? 0
-      : Math.round((completed / total) * 100);
-
-  return {
-    total,
-    completed,
-    remaining,
-    percentage
-  };
-}
-
-
-/* =========================
-   14. STREAK
-   ========================= */
-
-function calculateStreak() {
-  let streak = 0;
-
-  const date = new Date();
-
-  while (true) {
-    const day = dateString(date);
-
-    const goals = allGoals.filter(
-      goal => goal.goal_date === day
-    );
-
-    if (goals.length === 0) {
-      break;
-    }
-
-    const complete = goals.every(
-      goal => goal.completed
-    );
-
-    if (!complete) {
-      break;
-    }
-
-    streak++;
-
-    date.setDate(date.getDate() - 1);
-  }
-
-  return streak;
-}
-
-
-/* =========================
-   15. RENDER EVERYTHING
-   ========================= */
-
-function renderEverything() {
-  renderDateTitle();
-  renderGoals();
-  renderStats();
-  renderGraph();
-  renderStreak();
-}
-
-
-/* =========================
-   16. DATE TITLE
-   ========================= */
-
-function renderDateTitle() {
-  const title =
-    $("period-title") ||
-    $("date-title") ||
-    $("current-date");
-
-  if (!title) return;
-
-  if (currentPeriod === "daily") {
-    title.textContent = formatDate(currentDate);
-  }
-
-  if (currentPeriod === "weekly") {
-    title.textContent =
-      `${formatShortDate(
-        getStartOfWeek(currentDate)
-      )} - ${formatShortDate(
-        getEndOfWeek(currentDate)
-      )}`;
-  }
-
-  if (currentPeriod === "monthly") {
-    title.textContent =
-      currentDate.toLocaleDateString(undefined, {
-        month: "long",
-        year: "numeric"
-      });
-  }
-
-  if (currentPeriod === "yearly") {
-    title.textContent =
-      String(currentDate.getFullYear());
-  }
-}
-
-
-/* =========================
-   17. RENDER GOALS
-   ========================= */
-
-function renderGoals() {
-  const container =
-    $("goals-list") ||
-    $("goals") ||
-    $("goal-list");
-
-  if (!container) return;
-
-  const goals = getPeriodGoals();
-
-  if (goals.length === 0) {
-    container.innerHTML = `
-      <div class="empty-goals">
-        <div style="font-size:40px;">🎯</div>
-        <h3>No goals yet</h3>
-        <p>Add your first goal!</p>
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = goals.map(goal => `
-    <div class="goal-item"
-         style="
-         display:flex;
-         align-items:center;
-         gap:12px;
-         padding:14px;
-         margin-bottom:10px;
-         border-radius:12px;
-         border:1px solid rgba(128,128,128,.25);
-         ">
-      
-      <input
-        type="checkbox"
-        ${goal.completed ? "checked" : ""}
-        onchange="
-          window.toggleGoalFromUI(
-            ${goal.id},
-            this.checked
-          )
-        "
-        style="width:22px;height:22px;"
-      >
-
-      <div style="flex:1;">
-        <div style="
-          font-size:16px;
-          ${goal.completed
-            ? "text-decoration:line-through;opacity:.55;"
-            : ""}
-        ">
-          ${escapeHTML(goal.title)}
-        </div>
-
-        <small style="opacity:.6;">
-          ${goal.goal_date}
-        </small>
-      </div>
-
-      <button
-        onclick="window.deleteGoalFromUI(${goal.id})"
-        style="
-        border:0;
-        background:none;
-        cursor:pointer;
-        font-size:20px;
-        ">
-        🗑️
-      </button>
-
-    </div>
-  `).join("");
-}
-
-
-/* =========================
-   18. RENDER STATS
-   ========================= */
-
-function renderStats() {
-  const goals = getPeriodGoals();
-  const stats = calculateStats(goals);
-
-  const total =
-    $("total-goals") ||
-    $("totalGoals");
-
-  const completed =
-    $("completed-goals") ||
-    $("completedGoals");
-
-  const remaining =
-    $("remaining-goals") ||
-    $("remainingGoals");
-
-  const percentage =
-    $("progress-percentage") ||
-    $("progressPercentage");
-
-  if (total) total.textContent = stats.total;
-  if (completed) completed.textContent = stats.completed;
-  if (remaining) remaining.textContent = stats.remaining;
-  if (percentage) percentage.textContent =
-    stats.percentage + "%";
-
-
-  /* Create statistics card if HTML doesn't have one */
-  let statsBox = $("auto-statistics");
-
-  if (!statsBox) {
-    const dashboard =
-      $("dashboard") ||
-      document.body;
-
-    statsBox = document.createElement("div");
-    statsBox.id = "auto-statistics";
-
-    statsBox.style.cssText = `
-      margin:20px 0;
-      padding:20px;
-      border-radius:18px;
-      background:rgba(128,128,128,.10);
-    `;
-
-    dashboard.appendChild(statsBox);
-  }
-
-  statsBox.innerHTML = `
-    <h2 style="margin-top:0;">📊 Progress Statistics</h2>
-
-    <div style="
-      display:grid;
-      grid-template-columns:
-      repeat(3,1fr);
-      gap:10px;
-    ">
-
-      <div>
-        <strong style="font-size:24px;">
-          ${stats.total}
-        </strong>
-        <br>
-        <small>Total</small>
-      </div>
-
-      <div>
-        <strong style="font-size:24px;">
-          ${stats.completed}
-        </strong>
-        <br>
-        <small>Completed</small>
-      </div>
-
-      <div>
-        <strong style="font-size:24px;">
-          ${stats.percentage}%
-        </strong>
-        <br>
-        <small>Progress</small>
-      </div>
-
-    </div>
-
-    <div style="
-      margin-top:15px;
-      height:12px;
-      background:#ddd;
-      border-radius:20px;
-      overflow:hidden;
-    ">
-      <div style="
-        width:${stats.percentage}%;
-        height:100%;
-        background:#22c55e;
-        transition:.4s;
-      "></div>
-    </div>
-  `;
-}
-
-
-/* =========================
-   19. STREAK
-   ========================= */
-
-function renderStreak() {
-  const streak = calculateStreak();
-
-  const elements = document.querySelectorAll(
-    "#streak, #current-streak, .streak-number"
-  );
-
-  elements.forEach(el => {
-    el.textContent = streak;
-  });
-}
-
-
-/* =========================
-   20. PROGRESS GRAPH
-   ========================= */
-
-function renderGraph() {
-  let graph = $("progress-graph");
-
-  if (!graph) {
-    const dashboard =
-      $("dashboard") ||
-      document.body;
-
-    graph = document.createElement("div");
-    graph.id = "progress-graph";
-
-    graph.style.cssText = `
-      margin:20px 0;
-      padding:20px;
-      border-radius:18px;
-      background:rgba(128,128,128,.10);
-    `;
-
-    dashboard.appendChild(graph);
-  }
-
-  const days = [];
-  const values = [];
-
-  const start =
-    currentPeriod === "daily"
-      ? new Date(currentDate)
-      : currentPeriod === "weekly"
-      ? getStartOfWeek(currentDate)
-      : currentPeriod === "monthly"
-      ? getStartOfMonth(currentDate)
-      : new Date(currentDate.getFullYear(), 0, 1);
-
-  let count =
-    currentPeriod === "daily"
-      ? 1
-      : currentPeriod === "weekly"
-      ? 7
-      : currentPeriod === "monthly"
-      ? new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth() + 1,
-          0
-        ).getDate()
-      : 12;
-
-  for (let i = 0; i < count; i++) {
-    const d = new Date(start);
-
-    if (currentPeriod === "yearly") {
-      d.setMonth(i);
     } else {
-      d.setDate(start.getDate() + i);
+
+      showAuth();
+
     }
 
-    const ds = dateString(d);
+    showLoading(false);
 
-    const dayGoals = allGoals.filter(
-      goal => goal.goal_date === ds
-    );
-
-    const percentage =
-      dayGoals.length === 0
-        ? 0
-        : Math.round(
-            dayGoals.filter(g => g.completed).length /
-            dayGoals.length *
-            100
-          );
-
-    days.push(
-      currentPeriod === "yearly"
-        ? d.toLocaleDateString(undefined, {
-            month: "short"
-          })
-        : d.getDate()
-    );
-
-    values.push(percentage);
   }
+);
 
 
-  /* SVG graph */
-
-  const width = 700;
-  const height = 240;
-  const padding = 35;
-
-  const maxValue = 100;
-
-  const points = values.map((value, index) => {
-    const x =
-      padding +
-      (index *
-        (width - padding * 2)) /
-        Math.max(values.length - 1, 1);
-
-    const y =
-      height -
-      padding -
-      (value / maxValue) *
-        (height - padding * 2);
-
-    return `${x},${y}`;
-  }).join(" ");
-
-
-  const circles = values.map((value, index) => {
-    const x =
-      padding +
-      (index *
-        (width - padding * 2)) /
-        Math.max(values.length - 1, 1);
-
-    const y =
-      height -
-      padding -
-      (value / maxValue) *
-        (height - padding * 2);
-
-    return `
-      <circle
-        cx="${x}"
-        cy="${y}"
-        r="4"
-        fill="#22c55e"
-      />
-    `;
-  }).join("");
-
-
-  graph.innerHTML = `
-    <h2 style="margin-top:0;">
-      📈 Progress Graph
-    </h2>
-
-    <div style="
-      width:100%;
-      overflow-x:auto;
-    ">
-
-      <svg
-        viewBox="0 0 ${width} ${height}"
-        width="100%"
-        style="min-width:500px;"
-      >
-
-        <line
-          x1="${padding}"
-          y1="${height-padding}"
-          x2="${width-padding}"
-          y2="${height-padding}"
-          stroke="currentColor"
-          opacity=".2"
-        />
-
-        <line
-          x1="${padding}"
-          y1="${padding}"
-          x2="${padding}"
-          y2="${height-padding}"
-          stroke="currentColor"
-          opacity=".2"
-        />
-
-        <polyline
-          points="${points}"
-          fill="none"
-          stroke="#22c55e"
-          stroke-width="4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-
-        ${circles}
-
-      </svg>
-
-    </div>
-
-    <div style="
-      display:flex;
-      justify-content:space-between;
-      opacity:.6;
-      font-size:12px;
-    ">
-      <span>0%</span>
-      <span>50%</span>
-      <span>100%</span>
-    </div>
-  `;
-}
-
-
-/* =========================
-   21. PERIOD BUTTONS
-   ========================= */
-
-function setPeriod(period) {
-  currentPeriod = period;
-
-  document
-    .querySelectorAll(
-      "[data-period]"
-    )
-    .forEach(button => {
-      button.classList.toggle(
-        "active",
-        button.dataset.period === period
-      );
-    });
-
-  renderEverything();
-}
-
-
-/* =========================
-   22. PREVIOUS / NEXT
-   ========================= */
-
-function previousPeriod() {
-  if (currentPeriod === "daily") {
-    currentDate.setDate(
-      currentDate.getDate() - 1
-    );
-  }
-
-  if (currentPeriod === "weekly") {
-    currentDate.setDate(
-      currentDate.getDate() - 7
-    );
-  }
-
-  if (currentPeriod === "monthly") {
-    currentDate.setMonth(
-      currentDate.getMonth() - 1
-    );
-  }
-
-  if (currentPeriod === "yearly") {
-    currentDate.setFullYear(
-      currentDate.getFullYear() - 1
-    );
-  }
-
-  renderEverything();
-}
-
-
-function nextPeriod() {
-  if (currentPeriod === "daily") {
-    currentDate.setDate(
-      currentDate.getDate() + 1
-    );
-  }
-
-  if (currentPeriod === "weekly") {
-    currentDate.setDate(
-      currentDate.getDate() + 7
-    );
-  }
-
-  if (currentPeriod === "monthly") {
-    currentDate.setMonth(
-      currentDate.getMonth() + 1
-    );
-  }
-
-  if (currentPeriod === "yearly") {
-    currentDate.setFullYear(
-      currentDate.getFullYear() + 1
-    );
-  }
-
-  renderEverything();
-}
-
-
-/* =========================
-   23. TODAY
-   ========================= */
-
-function goToday() {
-  currentDate = new Date();
-  renderEverything();
-}
-
-
-/* =========================
-   24. FORM CONNECTION
-   ========================= */
-
-function connectForms() {
-
-  /* Login */
-
-  const loginForm =
-    $("login-form") ||
-    $("loginForm");
-
-  if (loginForm) {
-    loginForm.addEventListener(
-      "submit",
-      async function(e) {
-        e.preventDefault();
-
-        const email =
-          loginForm.querySelector(
-            'input[type="email"]'
-          )?.value;
-
-        const password =
-          loginForm.querySelector(
-            'input[type="password"]'
-          )?.value;
-
-        if (email && password) {
-          await loginUser(
-            email,
-            password
-          );
-        }
-      }
-    );
-  }
-
-
-  /* Register */
-
-  const registerForm =
-    $("register-form") ||
-    $("registerForm");
-
-  if (registerForm) {
-    registerForm.addEventListener(
-      "submit",
-      async function(e) {
-        e.preventDefault();
-
-        const email =
-          registerForm.querySelector(
-            'input[type="email"]'
-          )?.value;
-
-        const password =
-          registerForm.querySelector(
-            'input[type="password"]'
-          )?.value;
-
-        if (email && password) {
-          await registerUser(
-            email,
-            password
-          );
-        }
-      }
-    );
-  }
-
-
-  /* Add goal */
-
-  const addForm =
-    $("goal-form") ||
-    $("add-goal-form") ||
-    $("addGoalForm");
-
-  if (addForm) {
-    addForm.addEventListener(
-      "submit",
-      async function(e) {
-        e.preventDefault();
-
-        const input =
-          addForm.querySelector(
-            'input[type="text"]'
-          );
-
-        const dateInput =
-          addForm.querySelector(
-            'input[type="date"]'
-          );
-
-        if (input) {
-          await addGoal(
-            input.value,
-            dateInput?.value ||
-            dateString(currentDate)
-          );
-
-          input.value = "";
-        }
-      }
-    );
-  }
-}
-
-
-/* =========================
-   25. GLOBAL BUTTONS
-   ========================= */
-
-window.toggleGoalFromUI =
-  function(id, checked) {
-    toggleGoal(id, checked);
-  };
-
-window.deleteGoalFromUI =
-  function(id) {
-    deleteGoal(id);
-  };
-
-window.addGoal =
-  addGoal;
-
-window.loginUser =
-  loginUser;
-
-window.registerUser =
-  registerUser;
-
-window.logoutUser =
-  logoutUser;
-
-window.setPeriod =
-  setPeriod;
-
-window.previousPeriod =
-  previousPeriod;
-
-window.nextPeriod =
-  nextPeriod;
-
-window.goToday =
-  goToday;
-
-
-/* =========================
-   26. AUTH STATE LISTENER
-   ========================= */
+/* =========================================================
+   AUTH STATE
+========================================================= */
 
 supabaseClient.auth.onAuthStateChange(
   async (event, session) => {
 
-    if (session) {
-      currentUser = session.user;
+    if (
+      session &&
+      session.user
+    ) {
 
-      showDashboard();
+      currentUser =
+        session.user;
 
-      /*
-       * Small timeout prevents Supabase
-       * auth callback conflicts.
-       */
-      setTimeout(
-        () => loadGoals(),
-        0
-      );
+      showApp();
+
+      await loadGoals();
 
     } else {
+
       currentUser = null;
-      allGoals = [];
+      goals = [];
 
       showAuth();
+
     }
+
   }
 );
 
 
-/* =========================
-   27. START APP
-   ========================= */
+/* =========================================================
+   EVENT LISTENERS
+========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async function() {
+function setupEventListeners() {
 
-    connectForms();
+  if (loginTab) {
 
-    /*
-     * Period buttons
-     */
+    loginTab.addEventListener(
+      "click",
+      () => {
 
-    document
-      .querySelectorAll(
-        "[data-period]"
-      )
-      .forEach(button => {
+        isRegisterMode = false;
 
-        button.addEventListener(
-          "click",
-          () => {
-            setPeriod(
-              button.dataset.period
-            );
-          }
+        loginTab.classList.add(
+          "active"
         );
 
-      });
+        registerTab.classList.remove(
+          "active"
+        );
 
+        authButton.textContent =
+          "Login";
 
-    /*
-     * Previous button
-     */
+        authMessage.textContent =
+          "";
 
-    const previous =
-      $("previous-btn") ||
-      $("prev-btn") ||
-      $("previous");
-
-    if (previous) {
-      previous.addEventListener(
-        "click",
-        previousPeriod
-      );
-    }
-
-
-    /*
-     * Next button
-     */
-
-    const next =
-      $("next-btn") ||
-      $("next");
-
-    if (next) {
-      next.addEventListener(
-        "click",
-        nextPeriod
-      );
-    }
-
-
-    /*
-     * Today button
-     */
-
-    const today =
-      $("today-btn") ||
-      $("today");
-
-    if (today) {
-      today.addEventListener(
-        "click",
-        goToday
-      );
-    }
-
-
-    /*
-     * Logout
-     */
-
-    const logout =
-      $("logout-btn") ||
-      $("logout");
-
-    if (logout) {
-      logout.addEventListener(
-        "click",
-        logoutUser
-      );
-    }
-
-
-    /*
-     * Check logged-in user
-     */
-
-    await checkUser();
+      }
+    );
 
   }
-);
+
+
+  if (registerTab) {
+
+    registerTab.addEventListener(
+      "click",
+      () => {
+
+        isRegisterMode = true;
+
+        registerTab.classList.add(
+          "active"
+        );
+
+        loginTab.classList.remove(
+          "active"
+        );
+
+        authButton.textContent =
+          "Create Account";
+
+        authMessage.textContent =
+          "";
+
+      }
+    );
+
+  }
+
+
+  if (authButton) {
+
+    authButton.addEventListener(
+      "click",
+      handleAuthentication
+    );
+
+  }
+
+
+  if (passwordInput) {
+
+    passwordInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          handleAuthentication();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  if (emailInput) {
+
+    emailInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          handleAuthentication();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  if (logoutButton) {
+
+    logoutButton.addEventListener(
+      "click",
+      logout
+    );
+
+  }
+
+
+  if (addGoalButton) {
+
+    addGoalButton.addEventListener(
+      "click",
+      addGoal
+    );
+
+  }
+
+
+  if (goalInput) {
+
+    goalInput.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Enter"
+        ) {
+
+          addGoal();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  if (previousDate) {
+
+    previousDate.addEventListener(
+      "click",
+      () => {
+
+        changeDate(-1);
+
+      }
+    );
+
+  }
+
+
+  if (nextDate) {
+
+    nextDate.addEventListener(
+      "click",
+      () => {
+
+        changeDate(1);
+
+      }
+    );
+
+  }
+
+
+  if (previousYear) {
+
+    previousYear.addEventListener(
+      "click",
+      () => {
+
+        currentYear--;
+
+        renderYearlyCalendar();
+
+      }
+    );
+
+  }
+
+
+  if (nextYear) {
+
+    nextYear.addEventListener(
+      "click",
+      () => {
+
+        currentYear++;
+
+        renderYearlyCalendar();
+
+      }
+    );
+
+  }
+
+
+  document
+    .querySelectorAll(".period-tab")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          document
+            .querySelectorAll(
+              ".period-tab"
+            )
+            .forEach(tab => {
+
+              tab.classList.remove(
+                "active"
+              );
+
+            });
+
+          button.classList.add(
+            "active"
+          );
+
+          currentPeriod =
+            button.dataset.period;
+
+          updatePeriodView();
+
+        }
+      );
+
+    });
+
+}
+
+
+/* =========================================================
+   LOGIN / REGISTER
+========================================================= */
+
+async function handleAuthentication() {
+
+  const email =
+    emailInput.value.trim();
+
+  const password =
+    passwordInput.value;
+
+
+  if (
+    !email ||
+    !password
+  ) {
+
+    showAuthMessage(
+      "Please enter your email and password."
+    );
+
+    return;
+
+  }
+
+
+  if (
+    password.length < 6
+  ) {
+
+    showAuthMessage(
+      "Password must contain at least 6 characters."
+    );
+
+    return;
+
+  }
+
+
+  showLoading(true);
+
+  showAuthMessage(
+    "Please wait..."
+  );
+
+
+  try {
+
+    if (isRegisterMode) {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.auth.signUp({
+
+          email: email,
+
+          password: password,
+
+          options: {
+
+            emailRedirectTo:
+              window.location.origin
+
+          }
+
+        });
+
+
+      if (error) {
+
+        throw error;
+
+      }
+
+
+      if (data.session) {
+
+        showAuthMessage(
+          "Account created successfully!"
+        );
+
+      } else {
+
+        showAuthMessage(
+          "Account created! Check your email to verify your account."
+        );
+
+      }
+
+    } else {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.auth
+          .signInWithPassword({
+
+            email: email,
+
+            password: password
+
+          });
+
+
+      if (error) {
+
+        throw error;
+
+      }
+
+
+      currentUser =
+        data.user;
+
+      showApp();
+
+      await loadGoals();
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    showAuthMessage(
+      error.message ||
+      "Something went wrong."
+    );
+
+  }
+
+
+  showLoading(false);
+
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function logout() {
+
+  showLoading(true);
+
+  const {
+    error
+  } =
+    await supabaseClient.auth.signOut();
+
+
+  if (error) {
+
+    console.error(error);
+
+  }
+
+
+  currentUser = null;
+  goals = [];
+
+  showAuth();
+
+  showLoading(false);
+
+}
+
+
+/* =========================================================
+   AUTH SCREEN
+========================================================= */
+
+function showAuth() {
+
+  if (!authScreen || !appScreen) {
+    return;
+  }
+
+  authScreen.classList.remove(
+    "hidden"
+  );
+
+  appScreen.classList.add(
+    "hidden"
+  );
+
+}
+
+
+/* =========================================================
+   APP SCREEN
+========================================================= */
+
+function showApp() {
+
+  if (!authScreen || !appScreen) {
+    return;
+  }
+
+  authScreen.classList.add(
+    "hidden"
+  );
+
+  appScreen.classList.remove(
+    "hidden"
+  );
+
+
+  if (
+    currentUser &&
+    userEmail
+  ) {
+
+    userEmail.textContent =
+      currentUser.email || "";
+
+  }
+
+}
+
+
+/* =========================================================
+   LOAD GOALS
+========================================================= */
+
+async function loadGoals() {
+
+  if (!currentUser) {
+
+    return;
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("goals")
+      .select("*")
+      .eq(
+        "user_id",
+        currentUser.id
+      )
+      .order(
+        "goal_date",
+        {
+          ascending: true
+        }
+      )
+      .order(
+        "created_at",
+        {
+          ascending: true
+        }
+      );
+
+
+  if (error) {
+
+    console.error(error);
+
+    alert(
+      "Could not load your goals. Please refresh the page."
+    );
+
+    return;
+
+  }
+
+
+  goals =
+    data || [];
+
+  updatePeriodView();
+
+}
+
+
+/* =========================================================
+   ADD GOAL
+========================================================= */
+
+async function addGoal() {
+
+  const title =
+    goalInput.value.trim();
+
+
+  if (!title) {
+
+    alert(
+      "Please enter a goal."
+    );
+
+    return;
+
+  }
+
+
+  if (!currentUser) {
+
+    alert(
+      "Please login first."
+    );
+
+    return;
+
+  }
+
+
+  addGoalButton.disabled =
+    true;
+
+  addGoalButton.textContent =
+    "Adding...";
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("goals")
+      .insert({
+
+        user_id:
+          currentUser.id,
+
+        title:
+          title,
+
+        goal_date:
+          formatDateForDatabase(
+            currentDate
+          ),
+
+        completed:
+          false
+
+      })
+      .select()
+      .single();
+
+
+  if (error) {
+
+    console.error(error);
+
+    alert(
+      "Could not add the goal. Please try again."
+    );
+
+  } else {
+
+    goals.push(data);
+
+    goalInput.value = "";
+
+    updatePeriodView();
+
+  }
+
+
+  addGoalButton.disabled =
+    false;
+
+  addGoalButton.textContent =
+    "+ Add Goal";
+
+}
+
+
+/* =========================================================
+   TOGGLE GOAL
+========================================================= */
+
+async function toggleGoal(goal) {
+
+  const newStatus =
+    !goal.completed;
+
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from("goals")
+      .update({
+
+        completed:
+          newStatus
+
+      })
+      .eq(
+        "id",
+        goal.id
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      );
+
+
+  if (error) {
+
+    console.error(error);
+
+    alert(
+      "Could not update the goal."
+    );
+
+    return;
+
+  }
+
+
+  goal.completed =
+    newStatus;
+
+  updatePeriodView();
+
+}
+
+
+/* =========================================================
+   DELETE GOAL
+========================================================= */
+
+async function deleteGoal(goal) {
+
+  const confirmed =
+    confirm(
+      `Delete "${goal.title}"?`
+    );
+
+
+  if (!confirmed) {
+
+    return;
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from("goals")
+      .delete()
+      .eq(
+        "id",
+        goal.id
+      )
+      .eq(
+        "user_id",
+        currentUser.id
+      );
+
+
+  if (error) {
+
+    console.error(error);
+
+    alert(
+      "Could not delete the goal."
+    );
+
+    return;
+
+  }
+
+
+  goals =
+    goals.filter(
+      item =>
+        item.id !== goal.id
+    );
+
+  updatePeriodView();
+
+}
+
+
+/* =========================================================
+   UPDATE VIEW
+========================================================= */
+
+function updatePeriodView() {
+
+  updateDateDisplay();
+
+  hideAllPeriodSections();
+
+
+  if (
+    currentPeriod ===
+    "daily"
+  ) {
+
+    renderDaily();
+
+  }
+
+
+  if (
+    currentPeriod ===
+    "weekly"
+  ) {
+
+    renderWeekly();
+
+  }
+
+
+  if (
+    currentPeriod ===
+    "monthly"
+  ) {
+
+    renderMonthly();
+
+  }
+
+
+  if (
+    currentPeriod ===
+    "yearly"
+  ) {
+
+    renderYearly();
+
+  }
+
+
+  calculateStreak();
+
+}
+
+
+/* =========================================================
+   HIDE SECTIONS
+========================================================= */
+
+function hideAllPeriodSections() {
+
+  if (weeklySection) {
+
+    weeklySection.classList.add(
+      "hidden"
+    );
+
+  }
+
+  if (monthlySection) {
+
+    monthlySection.classList.add(
+      "hidden"
+    );
+
+  }
+
+  if (yearlySection) {
+
+    yearlySection.classList.add(
+      "hidden"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   DAILY
+========================================================= */
+
+function renderDaily() {
+
+  const dateString =
+    formatDateForDatabase(
+      currentDate
+    );
+
+
+  const dailyGoals =
+    goals.filter(
+      goal =>
+        goal.goal_date ===
+        dateString
+    );
+
+
+  renderGoalsList(
+    dailyGoals
+  );
+
+
+  updateStats(
+    dailyGoals
+  );
+
+}
+
+
+/* =========================================================
+   WEEKLY
+========================================================= */
+
+function renderWeekly() {
+
+  if (weeklySection) {
+
+    weeklySection.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  const start =
+    getStartOfWeek(
+      currentDate
+    );
+
+
+  let html = "";
+
+
+  for (
+    let i = 0;
+    i < 7;
+    i++
+  ) {
+
+    const date =
+      new Date(start);
+
+
+    date.setDate(
+      start.getDate() + i
+    );
+
+
+    const dateString =
+      formatDateForDatabase(
+        date
+      );
+
+
+    const dayGoals =
+      goals.filter(
+        goal =>
+          goal.goal_date ===
+          dateString
+      );
+
+
+    const total =
+      dayGoals.length;
+
+
+    const completed =
+      dayGoals.filter(
+        goal =>
+          goal.completed
+      ).length;
+
+
+    const percent =
+      total === 0
+        ? 0
+        : Math.round(
+            (
+              completed /
+              total
+            ) * 100
+          );
+
+
+    html += `
+
+      <div class="period-day">
+
+        <div class="period-day-header">
+
+          <span>
+            ${formatShortDate(date)}
+          </span>
+
+          <strong>
+            ${completed}/${total}
+            (${percent}%)
+          </strong>
+
+        </div>
+
+        <div class="period-progress">
+
+          <div
+            class="period-progress-fill"
+            style="width:${percent}%">
+          </div>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  if (weeklyStats) {
+
+    weeklyStats.innerHTML =
+      html;
+
+  }
+
+}
+
+
+/* =========================================================
+   MONTHLY
+========================================================= */
+
+function renderMonthly() {
+
+  if (monthlySection) {
+
+    monthlySection.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  const year =
+    currentDate.getFullYear();
+
+  const month =
+    currentDate.getMonth();
+
+  const daysInMonth =
+    new Date(
+      year,
+      month + 1,
+      0
+    ).getDate();
+
+
+  let html = "";
+
+
+  for (
+    let day = 1;
+    day <= daysInMonth;
+    day++
+  ) {
+
+    const date =
+      new Date(
+        year,
+        month,
+        day
+      );
+
+
+    const dateString =
+      formatDateForDatabase(
+        date
+      );
+
+
+    const dayGoals =
+      goals.filter(
+        goal =>
+          goal.goal_date ===
+          dateString
+      );
+
+
+    const total =
+      dayGoals.length;
+
+
+    const completed =
+      dayGoals.filter(
+        goal =>
+          goal.completed
+      ).length;
+
+
+    const percent =
+      total === 0
+        ? 0
+        : Math.round(
+            (
+              completed /
+              total
+            ) * 100
+          );
+
+
+    html += `
+
+      <div class="period-day">
+
+        <div class="period-day-header">
+
+          <span>
+            ${formatShortDate(date)}
+          </span>
+
+          <strong>
+            ${completed}/${total}
+            (${percent}%)
+          </strong>
+
+        </div>
+
+        <div class="period-progress">
+
+          <div
+            class="period-progress-fill"
+            style="width:${percent}%">
+          </div>
+
+        </div>
+
+      </div>
+
+    `;
+
+  }
+
+
+  if (monthlyStats) {
+
+    monthlyStats.innerHTML =
+      html;
+
+  }
+
+}
+
+
+/* =========================================================
+   YEARLY
+========================================================= */
+
+function renderYearly() {
+
+  if (yearlySection) {
+
+    yearlySection.classList.remove(
+      "hidden"
+    );
+
+  }
+
+  renderYearlyCalendar();
+
+}
+
+
+/* =========================================================
+   YEAR CALENDAR
+========================================================= */
+
+function renderYearlyCalendar() {
+
+  if (!yearCalendar) {
+    return;
+  }
+
+
+  if (yearText) {
+
+    yearText.textContent =
+      currentYear;
+
+  }
+
+
+  yearCalendar.innerHTML =
+    "";
+
+
+  const firstDay =
+    new Date(
+      currentYear,
+      0,
+      1
+    ).getDay();
+
+
+  const daysInYear =
+    isLeapYear(
+      currentYear
+    )
+      ? 366
+      : 365;
+
+
+  for (
+    let i = 0;
+    i < firstDay;
+    i++
+  ) {
+
+    const blank =
+      document.createElement(
+        "div"
+      );
+
+    blank.className =
+      "calendar-day";
+
+    blank.style.visibility =
+      "hidden";
+
+    yearCalendar.appendChild(
+      blank
+    );
+
+  }
+
+
+  let totalGoals = 0;
+
+  let totalCompleted = 0;
+
+
+  for (
+    let day = 1;
+    day <= daysInYear;
+    day++
+  ) {
+
+    const date =
+      new Date(
+        currentYear,
+        0,
+        day
+      );
+
+
+    const dateString =
+      formatDateForDatabase(
+        date
+      );
+
+
+    const dayGoals =
+      goals.filter(
+        goal =>
+          goal.goal_date ===
+          dateString
+      );
+
+
+    const total =
+      dayGoals.length;
+
+
+    const completed =
+      dayGoals.filter(
+        goal =>
+          goal.completed
+      ).length;
+
+
+    totalGoals +=
+      total;
+
+    totalCompleted +=
+      completed;
+
+
+    const dayElement =
+      document.createElement(
+        "div"
+      );
+
+
+    dayElement.className =
+      "calendar-day";
+
+
+    if (
+      total > 0 &&
+      completed === total
+    ) {
+
+      dayElement.classList.add(
+        "complete"
+      );
+
+    } else if (
+      completed > 0
+    ) {
+
+      dayElement.classList.add(
+        "partial"
+      );
+
+    }
+
+
+    const today =
+      new Date();
+
+
+    if (
+      date.getFullYear() ===
+        today.getFullYear() &&
+      date.getMonth() ===
+        today.getMonth() &&
+      date.getDate() ===
+        today.getDate()
+    ) {
+
+      dayElement.classList.add(
+        "today"
+      );
+
+    }
+
+
+    dayElement.title =
+      `${formatShortDate(date)} — ${completed}/${total} completed`;
+
+
+    yearCalendar.appendChild(
+      dayElement
+    );
+
+  }
+
+
+  const rate =
+    totalGoals === 0
+      ? 0
+      : Math.round(
+          (
+            totalCompleted /
+            totalGoals
+          ) * 100
+        );
+
+
+  if (yearTotalGoals) {
+
+    yearTotalGoals.textContent =
+      totalGoals;
+
+  }
+
+
+  if (yearCompletedGoals) {
+
+    yearCompletedGoals.textContent =
+      totalCompleted;
+
+  }
+
+
+  if (yearSuccessRate) {
+
+    yearSuccessRate.textContent =
+      `${rate}%`;
+
+  }
+
+}
+
+
+/* =========================================================
+   GOALS LIST
+========================================================= */
+
+function renderGoalsList(
+  goalArray
+) {
+
+  if (!goalsList) {
+    return;
+  }
+
+
+  goalsList.innerHTML =
+    "";
+
+
+  if (
+    goalArray.length === 0
+  ) {
+
+    if (emptyState) {
+
+      goalsList.appendChild(
+        emptyState
+      );
+
+      emptyState.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    if (goalCount) {
+
+      goalCount.textContent =
+        "0 goals";
+
+    }
+
+
+    return;
+
+  }
+
+
+  if (emptyState) {
+
+    emptyState.classList.add(
+      "hidden"
+    );
+
+  }
+
+
+  if (goalCount) {
+
+    goalCount.textContent =
+      `${goalArray.length} ${
+        goalArray.length === 1
+          ? "goal"
+          : "goals"
+      }`;
+
+  }
+
+
+  goalArray.forEach(
+    goal => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+
+      item.className =
+        "goal-item";
+
+
+      if (
+        goal.completed
+      ) {
+
+        item.classList.add(
+          "completed"
+        );
+
+      }
+
+
+      const checkbox =
+        document.createElement(
+          "button"
+        );
+
+
+      checkbox.className =
+        "goal-checkbox";
+
+
+      if (
+        goal.completed
+      ) {
+
+        checkbox.classList.add(
+          "completed"
+        );
+
+        checkbox.textContent =
+          "✓";
+
+      }
+
+
+      checkbox.addEventListener(
+        "click",
+        () =>
+          toggleGoal(goal)
+      );
+
+
+      const title =
+        document.createElement(
+          "div"
+        );
+
+
+      title.className =
+        "goal-title";
+
+
+      title.textContent =
+        goal.title;
+
+
+      const deleteButton =
+        document.createElement(
+          "button"
+        );
+
+
+      deleteButton.className =
+        "delete-goal";
+
+
+      deleteButton.textContent =
+        "🗑";
+
+
+      deleteButton.setAttribute(
+        "aria-label",
+        "Delete goal"
+      );
+
+
+      deleteButton.addEventListener(
+        "click",
+        () =>
+          deleteGoal(goal)
+      );
+
+
+      item.appendChild(
+        checkbox
+      );
+
+      item.appendChild(
+        title
+      );
+
+      item.appendChild(
+        deleteButton
+      );
+
+
+      goalsList.appendChild(
+        item
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+function updateStats(
+  goalArray
+) {
+
+  const total =
+    goalArray.length;
+
+
+  const completed =
+    goalArray.filter(
+      goal =>
+        goal.completed
+    ).length;
+
+
+  const percent =
+    total === 0
+      ? 0
+      : Math.round(
+          (
+            completed /
+            total
+          ) * 100
+        );
+
+
+  if (completedCount) {
+
+    completedCount.textContent =
+      completed;
+
+  }
+
+
+  if (totalCountText) {
+
+    totalCountText.textContent =
+      `/ ${total}`;
+
+  }
+
+
+  if (progressPercent) {
+
+    progressPercent.textContent =
+      `${percent}%`;
+
+  }
+
+
+  if (progressText) {
+
+    progressText.textContent =
+      `${percent}%`;
+
+  }
+
+
+  if (progressBar) {
+
+    progressBar.style.width =
+      `${percent}%`;
+
+  }
+
+}
+
+
+/* =========================================================
+   CHANGE DATE
+========================================================= */
+
+function changeDate(
+  amount
+) {
+
+  currentDate.setDate(
+    currentDate.getDate() +
+      amount
+  );
+
+
+  currentYear =
+    currentDate.getFullYear();
+
+
+  updatePeriodView();
+
+}
+
+
+/* =========================================================
+   DATE DISPLAY
+========================================================= */
+
+function updateDateDisplay() {
+
+  if (
+    !currentDateText ||
+    !currentDateSubtext
+  ) {
+
+    return;
+
+  }
+
+
+  const today =
+    new Date();
+
+
+  const selected =
+    formatDateForDatabase(
+      currentDate
+    );
+
+
+  const todayString =
+    formatDateForDatabase(
+      today
+    );
+
+
+  if (
+    selected ===
+    todayString
+  ) {
+
+    currentDateText.textContent =
+      "Today";
+
+  } else {
+
+    currentDateText.textContent =
+      currentDate.toLocaleDateString(
+        undefined,
+        {
+          weekday:
+            "long"
+        }
+      );
+
+  }
+
+
+  currentDateSubtext.textContent =
+    currentDate.toLocaleDateString(
+      undefined,
+      {
+        day:
+          "numeric",
+
+        month:
+          "long",
+
+        year:
+          "numeric"
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   GREETING
+========================================================= */
+
+function setGreeting() {
+
+  if (!greeting) {
+    return;
+  }
+
+
+  const hour =
+    new Date().getHours();
+
+
+  if (
+    hour < 12
+  ) {
+
+    greeting.textContent =
+      "Good morning 👋";
+
+  } else if (
+    hour < 18
+  ) {
+
+    greeting.textContent =
+      "Good afternoon 👋";
+
+  } else {
+
+    greeting.textContent =
+      "Good evening 👋";
+
+  }
+
+}
+
+
+/* =========================================================
+   STREAK
+========================================================= */
+
+async function calculateStreak() {
+
+  if (!currentUser) {
+
+    if (streakCount) {
+
+      streakCount.textContent =
+        "0";
+
+    }
+
+    return;
+
+  }
+
+
+  let streak = 0;
+
+  const date =
+    new Date();
+
+
+  for (
+    let i = 0;
+    i < 365;
+    i++
+  ) {
+
+    const dateString =
+      formatDateForDatabase(
+        date
+      );
+
+
+    const dayGoals =
+      goals.filter(
+        goal =>
+          goal.goal_date ===
+          dateString
+      );
+
+
+    if (
+      dayGoals.length === 0
+    ) {
+
+      break;
+
+    }
+
+
+    const allCompleted =
+      dayGoals.every(
+        goal =>
+          goal.completed
+      );
+
+
+    if (!allCompleted) {
+
+      break;
+
+    }
+
+
+    streak++;
+
+
+    date.setDate(
+      date.getDate() - 1
+    );
+
+  }
+
+
+  if (streakCount) {
+
+    streakCount.textContent =
+      streak;
+
+  }
+
+}
+
+
+/* =========================================================
+   DATE HELPERS
+========================================================= */
+
+function formatDateForDatabase(
+  date
+) {
+
+  const year =
+    date.getFullYear();
+
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      "0"
+    );
+
+
+  return `${year}-${month}-${day}`;
+
+}
+
+
+function formatShortDate(
+  date
+) {
+
+  return date.toLocaleDateString(
+    undefined,
+    {
+      weekday:
+        "short",
+
+      day:
+        "numeric",
+
+      month:
+        "short"
+
+    }
+  );
+
+}
+
+
+function getStartOfWeek(
+  date
+) {
+
+  const result =
+    new Date(date);
+
+
+  const day =
+    result.getDay();
+
+
+  result.setDate(
+    result.getDate() -
+      day
+  );
+
+
+  result.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+
+  return result;
+
+}
+
+
+function isLeapYear(
+  year
+) {
+
+  return (
+    year % 4 === 0 &&
+    (
+      year % 100 !== 0 ||
+      year % 400 === 0
+    )
+  );
+
+}
+
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+function showAuthMessage(
+  message
+) {
+
+  if (authMessage) {
+
+    authMessage.textContent =
+      message;
+
+  }
+
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+function showLoading(
+  show
+) {
+
+  if (!loadingScreen) {
+    return;
+  }
+
+
+  if (show) {
+
+    loadingScreen.classList.remove(
+      "hidden"
+    );
+
+  } else {
+
+    loadingScreen.classList.add(
+      "hidden"
+    );
+
+  }
+
+}
