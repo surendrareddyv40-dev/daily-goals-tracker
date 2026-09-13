@@ -1,11 +1,12 @@
 /* =========================================================
    DAILY GOALS TRACKER
-   Supabase + JavaScript
+   SUPABASE + JAVASCRIPT
+   VERSION: FINAL
 ========================================================= */
 
 
 /* =========================================================
-   SUPABASE CONNECTION
+   1. SUPABASE CONNECTION
 ========================================================= */
 
 const SUPABASE_URL =
@@ -22,7 +23,7 @@ const supabaseClient =
 
 
 /* =========================================================
-   APP VARIABLES
+   2. APP STATE
 ========================================================= */
 
 let currentUser = null;
@@ -34,7 +35,7 @@ let isRegisterMode = false;
 
 
 /* =========================================================
-   HTML ELEMENTS
+   3. HTML ELEMENTS
 ========================================================= */
 
 const authScreen =
@@ -156,39 +157,58 @@ const yearSuccessRate =
 
 
 /* =========================================================
-   START APP
+   4. START APPLICATION
 ========================================================= */
 
 document.addEventListener(
   "DOMContentLoaded",
-  async () => {
+  async function () {
+
+    setupEventListeners();
 
     setGreeting();
+
     updateDateDisplay();
-    setupEventListeners();
 
     showLoading(true);
 
-    const {
-      data: {
-        session
+    try {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.auth.getSession();
+
+      if (error) {
+        throw error;
       }
-    } =
-      await supabaseClient.auth.getSession();
 
-    if (
-      session &&
-      session.user
-    ) {
+      if (
+        data &&
+        data.session &&
+        data.session.user
+      ) {
 
-      currentUser =
-        session.user;
+        currentUser =
+          data.session.user;
 
-      showApp();
+        showApp();
 
-      await loadGoals();
+        await loadGoals();
 
-    } else {
+      } else {
+
+        showAuth();
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Startup error:",
+        error
+      );
 
       showAuth();
 
@@ -201,11 +221,11 @@ document.addEventListener(
 
 
 /* =========================================================
-   AUTH STATE
+   5. AUTH STATE LISTENER
 ========================================================= */
 
 supabaseClient.auth.onAuthStateChange(
-  async (event, session) => {
+  function (event, session) {
 
     if (
       session &&
@@ -217,11 +237,17 @@ supabaseClient.auth.onAuthStateChange(
 
       showApp();
 
-      await loadGoals();
+      setTimeout(
+        function () {
+          loadGoals();
+        },
+        0
+      );
 
     } else {
 
       currentUser = null;
+
       goals = [];
 
       showAuth();
@@ -233,7 +259,7 @@ supabaseClient.auth.onAuthStateChange(
 
 
 /* =========================================================
-   EVENT LISTENERS
+   6. EVENT LISTENERS
 ========================================================= */
 
 function setupEventListeners() {
@@ -242,7 +268,7 @@ function setupEventListeners() {
 
     loginTab.addEventListener(
       "click",
-      () => {
+      function () {
 
         isRegisterMode = false;
 
@@ -250,15 +276,18 @@ function setupEventListeners() {
           "active"
         );
 
-        registerTab.classList.remove(
-          "active"
-        );
+        if (registerTab) {
+          registerTab.classList.remove(
+            "active"
+          );
+        }
 
-        authButton.textContent =
-          "Login";
+        if (authButton) {
+          authButton.textContent =
+            "Login";
+        }
 
-        authMessage.textContent =
-          "";
+        showAuthMessage("");
 
       }
     );
@@ -270,7 +299,7 @@ function setupEventListeners() {
 
     registerTab.addEventListener(
       "click",
-      () => {
+      function () {
 
         isRegisterMode = true;
 
@@ -278,15 +307,18 @@ function setupEventListeners() {
           "active"
         );
 
-        loginTab.classList.remove(
-          "active"
-        );
+        if (loginTab) {
+          loginTab.classList.remove(
+            "active"
+          );
+        }
 
-        authButton.textContent =
-          "Create Account";
+        if (authButton) {
+          authButton.textContent =
+            "Create Account";
+        }
 
-        authMessage.textContent =
-          "";
+        showAuthMessage("");
 
       }
     );
@@ -304,18 +336,14 @@ function setupEventListeners() {
   }
 
 
-  if (passwordInput) {
+  if (emailInput) {
 
-    passwordInput.addEventListener(
+    emailInput.addEventListener(
       "keydown",
-      event => {
+      function (event) {
 
-        if (
-          event.key === "Enter"
-        ) {
-
+        if (event.key === "Enter") {
           handleAuthentication();
-
         }
 
       }
@@ -324,18 +352,14 @@ function setupEventListeners() {
   }
 
 
-  if (emailInput) {
+  if (passwordInput) {
 
-    emailInput.addEventListener(
+    passwordInput.addEventListener(
       "keydown",
-      event => {
+      function (event) {
 
-        if (
-          event.key === "Enter"
-        ) {
-
+        if (event.key === "Enter") {
           handleAuthentication();
-
         }
 
       }
@@ -368,14 +392,10 @@ function setupEventListeners() {
 
     goalInput.addEventListener(
       "keydown",
-      event => {
+      function (event) {
 
-        if (
-          event.key === "Enter"
-        ) {
-
+        if (event.key === "Enter") {
           addGoal();
-
         }
 
       }
@@ -388,10 +408,8 @@ function setupEventListeners() {
 
     previousDate.addEventListener(
       "click",
-      () => {
-
+      function () {
         changeDate(-1);
-
       }
     );
 
@@ -402,10 +420,8 @@ function setupEventListeners() {
 
     nextDate.addEventListener(
       "click",
-      () => {
-
+      function () {
         changeDate(1);
-
       }
     );
 
@@ -416,7 +432,7 @@ function setupEventListeners() {
 
     previousYear.addEventListener(
       "click",
-      () => {
+      function () {
 
         currentYear--;
 
@@ -432,7 +448,7 @@ function setupEventListeners() {
 
     nextYear.addEventListener(
       "click",
-      () => {
+      function () {
 
         currentYear++;
 
@@ -446,46 +462,52 @@ function setupEventListeners() {
 
   document
     .querySelectorAll(".period-tab")
-    .forEach(button => {
+    .forEach(
+      function (button) {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          function () {
 
-          document
-            .querySelectorAll(
-              ".period-tab"
-            )
-            .forEach(tab => {
-
-              tab.classList.remove(
-                "active"
+            document
+              .querySelectorAll(
+                ".period-tab"
+              )
+              .forEach(
+                function (tab) {
+                  tab.classList.remove(
+                    "active"
+                  );
+                }
               );
 
-            });
+            button.classList.add(
+              "active"
+            );
 
-          button.classList.add(
-            "active"
-          );
+            currentPeriod =
+              button.dataset.period;
 
-          currentPeriod =
-            button.dataset.period;
+            updatePeriodView();
 
-          updatePeriodView();
+          }
+        );
 
-        }
-      );
-
-    });
+      }
+    );
 
 }
 
 
 /* =========================================================
-   LOGIN / REGISTER
+   7. LOGIN / REGISTER
 ========================================================= */
 
 async function handleAuthentication() {
+
+  if (!emailInput || !passwordInput) {
+    return;
+  }
 
   const email =
     emailInput.value.trim();
@@ -494,10 +516,7 @@ async function handleAuthentication() {
     passwordInput.value;
 
 
-  if (
-    !email ||
-    !password
-  ) {
+  if (!email || !password) {
 
     showAuthMessage(
       "Please enter your email and password."
@@ -508,9 +527,7 @@ async function handleAuthentication() {
   }
 
 
-  if (
-    password.length < 6
-  ) {
+  if (password.length < 6) {
 
     showAuthMessage(
       "Password must contain at least 6 characters."
@@ -543,23 +560,29 @@ async function handleAuthentication() {
           password: password,
 
           options: {
-
             emailRedirectTo:
               window.location.origin
-
           }
 
         });
 
 
       if (error) {
-
         throw error;
-
       }
 
 
-      if (data.session) {
+      if (
+        data &&
+        data.session
+      ) {
+
+        currentUser =
+          data.user;
+
+        showApp();
+
+        await loadGoals();
 
         showAuthMessage(
           "Account created successfully!"
@@ -568,7 +591,7 @@ async function handleAuthentication() {
       } else {
 
         showAuthMessage(
-          "Account created! Check your email to verify your account."
+          "Account created! Please check your email and verify your account."
         );
 
       }
@@ -590,9 +613,7 @@ async function handleAuthentication() {
 
 
       if (error) {
-
         throw error;
-
       }
 
 
@@ -607,15 +628,17 @@ async function handleAuthentication() {
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Authentication error:",
+      error
+    );
 
     showAuthMessage(
       error.message ||
-      "Something went wrong."
+      "Login failed. Please try again."
     );
 
   }
-
 
   showLoading(false);
 
@@ -623,27 +646,35 @@ async function handleAuthentication() {
 
 
 /* =========================================================
-   LOGOUT
+   8. LOGOUT
 ========================================================= */
 
 async function logout() {
 
   showLoading(true);
 
-  const {
-    error
-  } =
-    await supabaseClient.auth.signOut();
+  try {
 
+    const {
+      error
+    } =
+      await supabaseClient.auth.signOut();
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
 
-    console.error(error);
+  } catch (error) {
+
+    console.error(
+      "Logout error:",
+      error
+    );
 
   }
 
-
   currentUser = null;
+
   goals = [];
 
   showAuth();
@@ -654,7 +685,7 @@ async function logout() {
 
 
 /* =========================================================
-   AUTH SCREEN
+   9. SHOW AUTH
 ========================================================= */
 
 function showAuth() {
@@ -671,11 +702,17 @@ function showAuth() {
     "hidden"
   );
 
+  /*
+    IMPORTANT:
+    Any graph/statistics inside appScreen
+    automatically disappear when logged out.
+  */
+
 }
 
 
 /* =========================================================
-   APP SCREEN
+   10. SHOW APP
 ========================================================= */
 
 function showApp() {
@@ -707,69 +744,79 @@ function showApp() {
 
 
 /* =========================================================
-   LOAD GOALS
+   11. LOAD USER GOALS
 ========================================================= */
 
 async function loadGoals() {
 
   if (!currentUser) {
-
     return;
-
   }
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("goals")
-      .select("*")
-      .eq(
-        "user_id",
-        currentUser.id
-      )
-      .order(
-        "goal_date",
-        {
-          ascending: true
-        }
-      )
-      .order(
-        "created_at",
-        {
-          ascending: true
-        }
-      );
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("goals")
+        .select("*")
+        .eq(
+          "user_id",
+          currentUser.id
+        )
+        .order(
+          "goal_date",
+          {
+            ascending: true
+          }
+        )
+        .order(
+          "created_at",
+          {
+            ascending: true
+          }
+        );
 
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
 
-    console.error(error);
 
-    alert(
-      "Could not load your goals. Please refresh the page."
+    goals =
+      data || [];
+
+    updatePeriodView();
+
+  } catch (error) {
+
+    console.error(
+      "Load goals error:",
+      error
     );
 
-    return;
+    alert(
+      "Could not load your goals."
+    );
 
   }
-
-
-  goals =
-    data || [];
-
-  updatePeriodView();
 
 }
 
 
 /* =========================================================
-   ADD GOAL
+   12. ADD GOAL
 ========================================================= */
 
 async function addGoal() {
+
+  if (!goalInput) {
+    return;
+  }
+
 
   const title =
     goalInput.value.trim();
@@ -804,48 +851,57 @@ async function addGoal() {
     "Adding...";
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("goals")
-      .insert({
+  try {
 
-        user_id:
-          currentUser.id,
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("goals")
+        .insert({
 
-        title:
-          title,
+          user_id:
+            currentUser.id,
 
-        goal_date:
-          formatDateForDatabase(
-            currentDate
-          ),
+          title:
+            title,
 
-        completed:
-          false
+          goal_date:
+            formatDateForDatabase(
+              currentDate
+            ),
 
-      })
-      .select()
-      .single();
+          completed:
+            false
+
+        })
+        .select()
+        .single();
 
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
 
-    console.error(error);
-
-    alert(
-      "Could not add the goal. Please try again."
-    );
-
-  } else {
 
     goals.push(data);
 
     goalInput.value = "";
 
     updatePeriodView();
+
+  } catch (error) {
+
+    console.error(
+      "Add goal error:",
+      error
+    );
+
+    alert(
+      error.message ||
+      "Could not add the goal."
+    );
 
   }
 
@@ -860,118 +916,141 @@ async function addGoal() {
 
 
 /* =========================================================
-   TOGGLE GOAL
+   13. TOGGLE GOAL
 ========================================================= */
 
 async function toggleGoal(goal) {
+
+  if (!currentUser) {
+    return;
+  }
+
 
   const newStatus =
     !goal.completed;
 
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("goals")
-      .update({
+  try {
 
-        completed:
-          newStatus
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("goals")
+        .update({
 
-      })
-      .eq(
-        "id",
-        goal.id
-      )
-      .eq(
-        "user_id",
-        currentUser.id
-      );
+          completed:
+            newStatus
+
+        })
+        .eq(
+          "id",
+          goal.id
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
 
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
 
-    console.error(error);
+
+    goal.completed =
+      newStatus;
+
+    updatePeriodView();
+
+  } catch (error) {
+
+    console.error(
+      "Toggle goal error:",
+      error
+    );
 
     alert(
       "Could not update the goal."
     );
 
-    return;
-
   }
-
-
-  goal.completed =
-    newStatus;
-
-  updatePeriodView();
 
 }
 
 
 /* =========================================================
-   DELETE GOAL
+   14. DELETE GOAL
 ========================================================= */
 
 async function deleteGoal(goal) {
 
+  if (!currentUser) {
+    return;
+  }
+
+
   const confirmed =
-    confirm(
+    window.confirm(
       `Delete "${goal.title}"?`
     );
 
 
   if (!confirmed) {
-
     return;
-
   }
 
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("goals")
-      .delete()
-      .eq(
-        "id",
-        goal.id
-      )
-      .eq(
-        "user_id",
-        currentUser.id
+  try {
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("goals")
+        .delete()
+        .eq(
+          "id",
+          goal.id
+        )
+        .eq(
+          "user_id",
+          currentUser.id
+        );
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    goals =
+      goals.filter(
+        function (item) {
+          return item.id !== goal.id;
+        }
       );
 
+    updatePeriodView();
 
-  if (error) {
+  } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Delete goal error:",
+      error
+    );
 
     alert(
       "Could not delete the goal."
     );
 
-    return;
-
   }
-
-
-  goals =
-    goals.filter(
-      item =>
-        item.id !== goal.id
-    );
-
-  updatePeriodView();
 
 }
 
 
 /* =========================================================
-   UPDATE VIEW
+   15. UPDATE PERIOD
 ========================================================= */
 
 function updatePeriodView() {
@@ -981,86 +1060,65 @@ function updatePeriodView() {
   hideAllPeriodSections();
 
 
-  if (
-    currentPeriod ===
-    "daily"
-  ) {
-
+  if (currentPeriod === "daily") {
     renderDaily();
-
   }
 
-
-  if (
-    currentPeriod ===
-    "weekly"
-  ) {
-
+  if (currentPeriod === "weekly") {
     renderWeekly();
-
   }
 
-
-  if (
-    currentPeriod ===
-    "monthly"
-  ) {
-
+  if (currentPeriod === "monthly") {
     renderMonthly();
-
   }
 
-
-  if (
-    currentPeriod ===
-    "yearly"
-  ) {
-
+  if (currentPeriod === "yearly") {
     renderYearly();
-
   }
 
 
   calculateStreak();
 
+  /*
+    REAL GRAPH
+    Only render when app is visible.
+  */
+
+  if (
+    appScreen &&
+    !appScreen.classList.contains("hidden")
+  ) {
+
+    renderProgressGraph();
+
+  }
+
 }
 
 
 /* =========================================================
-   HIDE SECTIONS
+   16. HIDE PERIOD SECTIONS
 ========================================================= */
 
 function hideAllPeriodSections() {
 
   if (weeklySection) {
-
-    weeklySection.classList.add(
-      "hidden"
-    );
-
+    weeklySection.classList.add("hidden");
   }
 
   if (monthlySection) {
-
-    monthlySection.classList.add(
-      "hidden"
-    );
-
+    monthlySection.classList.add("hidden");
   }
 
   if (yearlySection) {
-
-    yearlySection.classList.add(
-      "hidden"
-    );
-
+    yearlySection.classList.add("hidden");
   }
 
 }
 
 
 /* =========================================================
-   DAILY
+   17. DAILY
 ========================================================= */
 
 function renderDaily() {
@@ -1073,16 +1131,20 @@ function renderDaily() {
 
   const dailyGoals =
     goals.filter(
-      goal =>
-        goal.goal_date ===
-        dateString
+      function (goal) {
+
+        return (
+          goal.goal_date ===
+          dateString
+        );
+
+      }
     );
 
 
   renderGoalsList(
     dailyGoals
   );
-
 
   updateStats(
     dailyGoals
@@ -1092,17 +1154,15 @@ function renderDaily() {
 
 
 /* =========================================================
-   WEEKLY
+   18. WEEKLY
 ========================================================= */
 
 function renderWeekly() {
 
   if (weeklySection) {
-
     weeklySection.classList.remove(
       "hidden"
     );
-
   }
 
 
@@ -1124,7 +1184,6 @@ function renderWeekly() {
     const date =
       new Date(start);
 
-
     date.setDate(
       start.getDate() + i
     );
@@ -1138,9 +1197,14 @@ function renderWeekly() {
 
     const dayGoals =
       goals.filter(
-        goal =>
-          goal.goal_date ===
-          dateString
+        function (goal) {
+
+          return (
+            goal.goal_date ===
+            dateString
+          );
+
+        }
       );
 
 
@@ -1150,8 +1214,9 @@ function renderWeekly() {
 
     const completed =
       dayGoals.filter(
-        goal =>
-          goal.completed
+        function (goal) {
+          return goal.completed;
+        }
       ).length;
 
 
@@ -1200,27 +1265,23 @@ function renderWeekly() {
 
 
   if (weeklyStats) {
-
     weeklyStats.innerHTML =
       html;
-
   }
 
 }
 
 
 /* =========================================================
-   MONTHLY
+   19. MONTHLY
 ========================================================= */
 
 function renderMonthly() {
 
   if (monthlySection) {
-
     monthlySection.classList.remove(
       "hidden"
     );
-
   }
 
 
@@ -1229,6 +1290,7 @@ function renderMonthly() {
 
   const month =
     currentDate.getMonth();
+
 
   const daysInMonth =
     new Date(
@@ -1263,9 +1325,14 @@ function renderMonthly() {
 
     const dayGoals =
       goals.filter(
-        goal =>
-          goal.goal_date ===
-          dateString
+        function (goal) {
+
+          return (
+            goal.goal_date ===
+            dateString
+          );
+
+        }
       );
 
 
@@ -1275,8 +1342,9 @@ function renderMonthly() {
 
     const completed =
       dayGoals.filter(
-        goal =>
-          goal.completed
+        function (goal) {
+          return goal.completed;
+        }
       ).length;
 
 
@@ -1325,28 +1393,25 @@ function renderMonthly() {
 
 
   if (monthlyStats) {
-
     monthlyStats.innerHTML =
       html;
-
   }
 
 }
 
 
 /* =========================================================
-   YEARLY
+   20. YEARLY
 ========================================================= */
 
 function renderYearly() {
 
   if (yearlySection) {
-
     yearlySection.classList.remove(
       "hidden"
     );
-
   }
+
 
   renderYearlyCalendar();
 
@@ -1354,7 +1419,7 @@ function renderYearly() {
 
 
 /* =========================================================
-   YEAR CALENDAR
+   21. YEAR CALENDAR
 ========================================================= */
 
 function renderYearlyCalendar() {
@@ -1365,10 +1430,8 @@ function renderYearlyCalendar() {
 
 
   if (yearText) {
-
     yearText.textContent =
       currentYear;
-
   }
 
 
@@ -1385,9 +1448,7 @@ function renderYearlyCalendar() {
 
 
   const daysInYear =
-    isLeapYear(
-      currentYear
-    )
+    isLeapYear(currentYear)
       ? 366
       : 365;
 
@@ -1443,9 +1504,14 @@ function renderYearlyCalendar() {
 
     const dayGoals =
       goals.filter(
-        goal =>
-          goal.goal_date ===
-          dateString
+        function (goal) {
+
+          return (
+            goal.goal_date ===
+            dateString
+          );
+
+        }
       );
 
 
@@ -1455,16 +1521,15 @@ function renderYearlyCalendar() {
 
     const completed =
       dayGoals.filter(
-        goal =>
-          goal.completed
+        function (goal) {
+          return goal.completed;
+        }
       ).length;
 
 
-    totalGoals +=
-      total;
+    totalGoals += total;
 
-    totalCompleted +=
-      completed;
+    totalCompleted += completed;
 
 
     const dayElement =
@@ -1540,33 +1605,27 @@ function renderYearlyCalendar() {
 
 
   if (yearTotalGoals) {
-
     yearTotalGoals.textContent =
       totalGoals;
-
   }
 
 
   if (yearCompletedGoals) {
-
     yearCompletedGoals.textContent =
       totalCompleted;
-
   }
 
 
   if (yearSuccessRate) {
-
     yearSuccessRate.textContent =
       `${rate}%`;
-
   }
 
 }
 
 
 /* =========================================================
-   GOALS LIST
+   22. GOALS LIST
 ========================================================= */
 
 function renderGoalsList(
@@ -1588,24 +1647,21 @@ function renderGoalsList(
 
     if (emptyState) {
 
-      goalsList.appendChild(
-        emptyState
-      );
-
       emptyState.classList.remove(
         "hidden"
+      );
+
+      goalsList.appendChild(
+        emptyState
       );
 
     }
 
 
     if (goalCount) {
-
       goalCount.textContent =
         "0 goals";
-
     }
-
 
     return;
 
@@ -1613,11 +1669,9 @@ function renderGoalsList(
 
 
   if (emptyState) {
-
     emptyState.classList.add(
       "hidden"
     );
-
   }
 
 
@@ -1634,7 +1688,7 @@ function renderGoalsList(
 
 
   goalArray.forEach(
-    goal => {
+    function (goal) {
 
       const item =
         document.createElement(
@@ -1646,14 +1700,10 @@ function renderGoalsList(
         "goal-item";
 
 
-      if (
-        goal.completed
-      ) {
-
+      if (goal.completed) {
         item.classList.add(
           "completed"
         );
-
       }
 
 
@@ -1667,9 +1717,7 @@ function renderGoalsList(
         "goal-checkbox";
 
 
-      if (
-        goal.completed
-      ) {
+      if (goal.completed) {
 
         checkbox.classList.add(
           "completed"
@@ -1683,8 +1731,9 @@ function renderGoalsList(
 
       checkbox.addEventListener(
         "click",
-        () =>
-          toggleGoal(goal)
+        function () {
+          toggleGoal(goal);
+        }
       );
 
 
@@ -1696,7 +1745,6 @@ function renderGoalsList(
 
       title.className =
         "goal-title";
-
 
       title.textContent =
         goal.title;
@@ -1711,10 +1759,8 @@ function renderGoalsList(
       deleteButton.className =
         "delete-goal";
 
-
       deleteButton.textContent =
         "🗑";
-
 
       deleteButton.setAttribute(
         "aria-label",
@@ -1724,8 +1770,9 @@ function renderGoalsList(
 
       deleteButton.addEventListener(
         "click",
-        () =>
-          deleteGoal(goal)
+        function () {
+          deleteGoal(goal);
+        }
       );
 
 
@@ -1753,7 +1800,7 @@ function renderGoalsList(
 
 
 /* =========================================================
-   STATISTICS
+   23. STATISTICS
 ========================================================= */
 
 function updateStats(
@@ -1766,8 +1813,9 @@ function updateStats(
 
   const completed =
     goalArray.filter(
-      goal =>
-        goal.completed
+      function (goal) {
+        return goal.completed;
+      }
     ).length;
 
 
@@ -1783,49 +1831,577 @@ function updateStats(
 
 
   if (completedCount) {
-
     completedCount.textContent =
       completed;
-
   }
 
 
   if (totalCountText) {
-
     totalCountText.textContent =
       `/ ${total}`;
-
   }
 
 
   if (progressPercent) {
-
     progressPercent.textContent =
       `${percent}%`;
-
   }
 
 
   if (progressText) {
-
     progressText.textContent =
       `${percent}%`;
-
   }
 
 
   if (progressBar) {
-
     progressBar.style.width =
       `${percent}%`;
-
   }
 
 }
 
 
 /* =========================================================
-   CHANGE DATE
+   24. REAL PROGRESS GRAPH
+========================================================= */
+
+function renderProgressGraph() {
+
+  /*
+    IMPORTANT:
+    Graph is rendered ONLY inside appScreen.
+    It will NEVER be shown on login page.
+  */
+
+  if (
+    !appScreen ||
+    appScreen.classList.contains("hidden")
+  ) {
+    return;
+  }
+
+
+  let graphContainer =
+    document.getElementById(
+      "progressGraph"
+    );
+
+
+  /*
+    If HTML does not already have
+    #progressGraph, create it.
+  */
+
+  if (!graphContainer) {
+
+    graphContainer =
+      document.createElement(
+        "div"
+      );
+
+    graphContainer.id =
+      "progressGraph";
+
+    graphContainer.className =
+      "progress-graph-card";
+
+
+    const title =
+      document.createElement(
+        "h2"
+      );
+
+    title.textContent =
+      "📈 Progress Graph";
+
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
+
+    canvas.id =
+      "goalProgressCanvas";
+
+
+    canvas.style.width =
+      "100%";
+
+    canvas.style.height =
+      "260px";
+
+    canvas.style.display =
+      "block";
+
+
+    graphContainer.appendChild(
+      title
+    );
+
+    graphContainer.appendChild(
+      canvas
+    );
+
+
+    /*
+      Put graph INSIDE appScreen.
+      Therefore it cannot appear on login screen.
+    */
+
+    appScreen.appendChild(
+      graphContainer
+    );
+
+  }
+
+
+  const canvas =
+    document.getElementById(
+      "goalProgressCanvas"
+    );
+
+
+  if (!canvas) {
+    return;
+  }
+
+
+  drawProgressChart(
+    canvas
+  );
+
+}
+
+
+/* =========================================================
+   25. DRAW GRAPH
+========================================================= */
+
+function drawProgressChart(
+  canvas
+) {
+
+  const ctx =
+    canvas.getContext("2d");
+
+
+  if (!ctx) {
+    return;
+  }
+
+
+  const width =
+    canvas.clientWidth || 600;
+
+  const height =
+    260;
+
+
+  const deviceRatio =
+    window.devicePixelRatio || 1;
+
+
+  canvas.width =
+    width * deviceRatio;
+
+  canvas.height =
+    height * deviceRatio;
+
+
+  ctx.setTransform(
+    deviceRatio,
+    0,
+    0,
+    deviceRatio,
+    0,
+    0
+  );
+
+
+  ctx.clearRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  /*
+    Use last 7 days for daily graph.
+  */
+
+  const points = [];
+
+
+  const today =
+    new Date();
+
+
+  for (
+    let i = 6;
+    i >= 0;
+    i--
+  ) {
+
+    const date =
+      new Date(today);
+
+
+    date.setDate(
+      today.getDate() - i
+    );
+
+
+    const dateString =
+      formatDateForDatabase(
+        date
+      );
+
+
+    const dayGoals =
+      goals.filter(
+        function (goal) {
+
+          return (
+            goal.goal_date ===
+            dateString
+          );
+
+        }
+      );
+
+
+    const total =
+      dayGoals.length;
+
+
+    const completed =
+      dayGoals.filter(
+        function (goal) {
+          return goal.completed;
+        }
+      ).length;
+
+
+    const percent =
+      total === 0
+        ? 0
+        : Math.round(
+            (
+              completed /
+              total
+            ) * 100
+          );
+
+
+    points.push({
+
+      date:
+        date,
+
+      percent:
+        percent
+
+    });
+
+  }
+
+
+  const paddingLeft = 45;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 45;
+
+
+  const chartWidth =
+    width -
+    paddingLeft -
+    paddingRight;
+
+
+  const chartHeight =
+    height -
+    paddingTop -
+    paddingBottom;
+
+
+  /*
+    Background
+  */
+
+  ctx.fillStyle =
+    "#ffffff";
+
+  ctx.fillRect(
+    0,
+    0,
+    width,
+    height
+  );
+
+
+  /*
+    Horizontal grid lines
+  */
+
+  ctx.strokeStyle =
+    "#e5e7eb";
+
+  ctx.lineWidth =
+    1;
+
+
+  for (
+    let value = 0;
+    value <= 100;
+    value += 25
+  ) {
+
+    const y =
+      paddingTop +
+      chartHeight -
+      (
+        value /
+        100
+      ) *
+      chartHeight;
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      paddingLeft,
+      y
+    );
+
+    ctx.lineTo(
+      width - paddingRight,
+      y
+    );
+
+    ctx.stroke();
+
+
+    ctx.fillStyle =
+      "#6b7280";
+
+    ctx.font =
+      "12px Arial";
+
+    ctx.textAlign =
+      "right";
+
+    ctx.fillText(
+      `${value}%`,
+      paddingLeft - 8,
+      y + 4
+    );
+
+  }
+
+
+  /*
+    Build points
+  */
+
+  const graphPoints =
+    points.map(
+      function (point, index) {
+
+        const x =
+          paddingLeft +
+          (
+            index /
+            (points.length - 1)
+          ) *
+          chartWidth;
+
+
+        const y =
+          paddingTop +
+          chartHeight -
+          (
+            point.percent /
+            100
+          ) *
+          chartHeight;
+
+
+        return {
+          x: x,
+          y: y,
+          percent:
+            point.percent,
+          date:
+            point.date
+        };
+
+      }
+    );
+
+
+  /*
+    Area under graph
+  */
+
+  if (graphPoints.length > 1) {
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      graphPoints[0].x,
+      paddingTop +
+        chartHeight
+    );
+
+
+    graphPoints.forEach(
+      function (point) {
+
+        ctx.lineTo(
+          point.x,
+          point.y
+        );
+
+      }
+    );
+
+
+    ctx.lineTo(
+      graphPoints[
+        graphPoints.length - 1
+      ].x,
+      paddingTop +
+        chartHeight
+    );
+
+
+    ctx.closePath();
+
+    ctx.fillStyle =
+      "rgba(79, 70, 229, 0.10)";
+
+    ctx.fill();
+
+  }
+
+
+  /*
+    Main graph line
+  */
+
+  if (graphPoints.length > 0) {
+
+    ctx.beginPath();
+
+    graphPoints.forEach(
+      function (point, index) {
+
+        if (index === 0) {
+
+          ctx.moveTo(
+            point.x,
+            point.y
+          );
+
+        } else {
+
+          ctx.lineTo(
+            point.x,
+            point.y
+          );
+
+        }
+
+      }
+    );
+
+
+    ctx.strokeStyle =
+      "#4f46e5";
+
+    ctx.lineWidth =
+      3;
+
+    ctx.lineJoin =
+      "round";
+
+    ctx.lineCap =
+      "round";
+
+    ctx.stroke();
+
+  }
+
+
+  /*
+    Points + dates
+  */
+
+  graphPoints.forEach(
+    function (point) {
+
+      ctx.beginPath();
+
+      ctx.arc(
+        point.x,
+        point.y,
+        5,
+        0,
+        Math.PI * 2
+      );
+
+
+      ctx.fillStyle =
+        "#4f46e5";
+
+      ctx.fill();
+
+
+      ctx.fillStyle =
+        "#374151";
+
+      ctx.font =
+        "11px Arial";
+
+      ctx.textAlign =
+        "center";
+
+
+      ctx.fillText(
+        `${point.percent}%`,
+        point.x,
+        Math.max(
+          12,
+          point.y - 10
+        )
+      );
+
+
+      ctx.fillStyle =
+        "#6b7280";
+
+      ctx.fillText(
+        point.date.toLocaleDateString(
+          undefined,
+          {
+            day: "numeric",
+            month: "short"
+          }
+        ),
+        point.x,
+        height - 18
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   26. DATE CHANGE
 ========================================================= */
 
 function changeDate(
@@ -1848,7 +2424,7 @@ function changeDate(
 
 
 /* =========================================================
-   DATE DISPLAY
+   27. DATE DISPLAY
 ========================================================= */
 
 function updateDateDisplay() {
@@ -1857,9 +2433,7 @@ function updateDateDisplay() {
     !currentDateText ||
     !currentDateSubtext
   ) {
-
     return;
-
   }
 
 
@@ -1893,8 +2467,7 @@ function updateDateDisplay() {
       currentDate.toLocaleDateString(
         undefined,
         {
-          weekday:
-            "long"
+          weekday: "long"
         }
       );
 
@@ -1905,15 +2478,9 @@ function updateDateDisplay() {
     currentDate.toLocaleDateString(
       undefined,
       {
-        day:
-          "numeric",
-
-        month:
-          "long",
-
-        year:
-          "numeric"
-
+        day: "numeric",
+        month: "long",
+        year: "numeric"
       }
     );
 
@@ -1921,7 +2488,7 @@ function updateDateDisplay() {
 
 
 /* =========================================================
-   GREETING
+   28. GREETING
 ========================================================= */
 
 function setGreeting() {
@@ -1935,16 +2502,12 @@ function setGreeting() {
     new Date().getHours();
 
 
-  if (
-    hour < 12
-  ) {
+  if (hour < 12) {
 
     greeting.textContent =
       "Good morning 👋";
 
-  } else if (
-    hour < 18
-  ) {
+  } else if (hour < 18) {
 
     greeting.textContent =
       "Good afternoon 👋";
@@ -1960,18 +2523,16 @@ function setGreeting() {
 
 
 /* =========================================================
-   STREAK
+   29. STREAK
 ========================================================= */
 
-async function calculateStreak() {
+function calculateStreak() {
 
   if (!currentUser) {
 
     if (streakCount) {
-
       streakCount.textContent =
         "0";
-
     }
 
     return;
@@ -1999,32 +2560,32 @@ async function calculateStreak() {
 
     const dayGoals =
       goals.filter(
-        goal =>
-          goal.goal_date ===
-          dateString
+        function (goal) {
+
+          return (
+            goal.goal_date ===
+            dateString
+          );
+
+        }
       );
 
 
-    if (
-      dayGoals.length === 0
-    ) {
-
+    if (dayGoals.length === 0) {
       break;
-
     }
 
 
     const allCompleted =
       dayGoals.every(
-        goal =>
-          goal.completed
+        function (goal) {
+          return goal.completed;
+        }
       );
 
 
     if (!allCompleted) {
-
       break;
-
     }
 
 
@@ -2049,7 +2610,7 @@ async function calculateStreak() {
 
 
 /* =========================================================
-   DATE HELPERS
+   30. DATE HELPERS
 ========================================================= */
 
 function formatDateForDatabase(
@@ -2090,15 +2651,9 @@ function formatShortDate(
   return date.toLocaleDateString(
     undefined,
     {
-      weekday:
-        "short",
-
-      day:
-        "numeric",
-
-      month:
-        "short"
-
+      weekday: "short",
+      day: "numeric",
+      month: "short"
     }
   );
 
@@ -2118,8 +2673,7 @@ function getStartOfWeek(
 
 
   result.setDate(
-    result.getDate() -
-      day
+    result.getDate() - day
   );
 
 
@@ -2152,7 +2706,7 @@ function isLeapYear(
 
 
 /* =========================================================
-   MESSAGES
+   31. AUTH MESSAGE
 ========================================================= */
 
 function showAuthMessage(
@@ -2170,7 +2724,7 @@ function showAuthMessage(
 
 
 /* =========================================================
-   LOADING
+   32. LOADING
 ========================================================= */
 
 function showLoading(
@@ -2197,3 +2751,36 @@ function showLoading(
   }
 
 }
+
+
+/* =========================================================
+   33. RESIZE GRAPH
+========================================================= */
+
+window.addEventListener(
+  "resize",
+  function () {
+
+    if (
+      appScreen &&
+      !appScreen.classList.contains(
+        "hidden"
+      )
+    ) {
+
+      const canvas =
+        document.getElementById(
+          "goalProgressCanvas"
+        );
+
+
+      if (canvas) {
+        drawProgressChart(
+          canvas
+        );
+      }
+
+    }
+
+  }
+);
